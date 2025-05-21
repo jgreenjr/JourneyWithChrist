@@ -23,6 +23,7 @@
       "./node_modules/@types"
     ]
   },
+  "include":["lib", "bin", "lambda", "ui"],
   "exclude": [
     "node_modules",
     "cdk.out"

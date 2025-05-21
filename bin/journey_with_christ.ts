@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
 import { JourneyWithChristStack } from '../lib/journey_with_christ-stack';
+import { CareFacilityApiStack } from '../lib/care-facility-api';
 
 const app = new cdk.App();
 new JourneyWithChristStack(app, 'JourneyWithChristStack', {
@@ -18,3 +19,5 @@ new JourneyWithChristStack(app, 'JourneyWithChristStack', {
 
   /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
 });
+
+new CareFacilityApiStack(app, 'CareFacilityApiStack');
