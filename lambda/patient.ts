@@ -8,7 +8,9 @@ const tableName = process.env.PATIENT_TABLE_NAME!;
 // Define the Patient interface
 interface Patient {
   patientId: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
   visitRequests: VisitRequest[];
 }
 
@@ -58,14 +60,16 @@ const getPatient = async (patientId: string) => {
 
 const createPatient = async (patient: Partial<Patient>) => {
   // Validate required fields
-  if (!patient.name) {
-    return { statusCode: 400, body: 'Missing required field: name' };
+  if (!patient.firstName || !patient.lastName) {
+    return { statusCode: 400, body: 'Missing required fields: firstName and/or lastName' };
   }
 
   const patientId = `${Date.now()}`;
   const newPatient: Patient = {
     patientId,
-    name: patient.name,
+    firstName: patient.firstName,
+    lastName: patient.lastName,
+    phoneNumber: patient.phoneNumber || '',
     visitRequests: patient.visitRequests || [],
   };
 
