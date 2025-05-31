@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Visit Request</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+        h1 {
+            margin-bottom: 30px;
+            color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Create Visit Request</h1>
+        <form id="visitRequestForm">
+            <div class="mb-3">
+                <label for="patientSelect" class="form-label">Patient</label>
+                <select class="form-select" id="patientSelect" required>
+                    <option value="" selected disabled>Select a patient</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="facilitySelect" class="form-label">Care Facility</label>
+                <select class="form-select" id="facilitySelect" required>
+                    <option value="" selected disabled>Select a facility</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="roomNumber" class="form-label">Room Number</label>
+                <input type="text" class="form-control" id="roomNumber" required>
+            </div>
+            <div class="mb-3">
+                <label for="floor" class="form-label">Floor</label>
+                <input type="text" class="form-control" id="floor">
+            </div>
+            <div class="mb-3">
+                <label for="notes" class="form-label">Notes</label>
+                <textarea class="form-control" id="notes" rows="3"></textarea>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="followUpRequested">
+                <label class="form-check-label" for="followUpRequested">Follow-up Requested</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Request</button>
+            <a href="index.html" class="btn btn-secondary ms-2">Back to Home</a>
+        </form>
+        <div class="mt-3">
+            <div id="successAlert" class="alert alert-success d-none" role="alert">
+                Visit request created successfully!
+            </div>
+            <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+                Error creating visit request.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiBaseUrl = '/api';
+        
+        // Fetch patients for dropdown
+        async function loadPatients() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/patient`);
+                if (!response.ok) throw new Error('Failed to fetch patients');
+                
+                const patients = await response.json();
+                const patientSelect = document.getElementById('patientSelect');
+                
+                patients.forEach(patient => {
+                    const option = document.createElement('option');
+                    option.value = patient.patientId;
+                    option.textContent = `${patient.firstName} ${patient.lastName}`;
+                    patientSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading patients:', error);
+                document.getElementById('errorAlert').textContent = 'Failed to load patients.';
+                document.getElementById('errorAlert').classList.remove('d-none');
+            }
+        }
+        
+        // Fetch care facilities for dropdown
+        async function loadCareFacilities() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/care-facility`);
+                if (!response.ok) throw new Error('Failed to fetch care facilities');
+                
+                const facilities = await response.json();
+                const facilitySelect = document.getElementById('facilitySelect');
+                
+                facilities.forEach(facility => {
+                    const option = document.createElement('option');
+                    option.value = facility.facilityId;
+                    option.textContent = facility.name;
+                    facilitySelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading care facilities:', error);
+                document.getElementById('errorAlert').textContent = 'Failed to load care facilities.';
+                document.getElementById('errorAlert').classList.remove('d-none');
+            }
+        }
+        
+        // Handle form submission
+        document.getElementById('visitRequestForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const patientId = document.getElementById('patientSelect').value;
+            const facilityId = document.getElementById('facilitySelect').value;
+            const roomNumber = document.getElementById('roomNumber').value;
+            const floor = document.getElementById('floor').value;
+            const notes = document.getElementById('notes').value;
+            const followUpRequested = document.getElementById('followUpRequested').checked;
+            
+            const visitRequest = {
+                patientId,
+                facilityId,
+                roomNumber,
+                floor,
+                notes,
+                followUpRequested,
+                active: true
+            };
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/visit-request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(visitRequest)
+                });
+                
+                if (!response.ok) throw new Error('Failed to create visit request');
+                
+                document.getElementById('successAlert').classList.remove('d-none');
+                document.getElementById('errorAlert').classList.add('d-none');
+                document.getElementById('visitRequestForm').reset();
+                
+                // Redirect after 2 seconds
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error creating visit request:', error);
+                document.getElementById('errorAlert').textContent = 'Error creating visit request.';
+                document.getElementById('errorAlert').classList.remove('d-none');
+                document.getElementById('successAlert').classList.add('d-none');
+            }
+        });
+        
+        // Load data when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            loadPatients();
+            loadCareFacilities();
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

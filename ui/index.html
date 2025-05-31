@@ -1,135 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Patient API Tester</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    input, textarea, button {
-      margin: 5px 0;
-      padding: 10px;
-      width: 100%;
-    }
-    textarea {
-      resize: vertical;
-    }
-    .response {
-      margin-top: 20px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      background-color: #f9f9f9;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journey With Christ - Care Facility System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+        h1 {
+            margin-bottom: 30px;
+            color: #0d6efd;
+        }
+        .card {
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+    </style>
 </head>
 <body>
-  <h1>Patient API Tester</h1>
+    <div class="container">
+        <h1>Journey With Christ - Care Facility System</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Patient Management</h5>
+                        <p class="card-text">Add, view, and manage patients in the system.</p>
+                        <a href="patients.html" class="btn btn-primary">Manage Patients</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Care Facilities</h5>
+                        <p class="card-text">Add, view, and manage care facilities.</p>
+                        <a href="facilities.html" class="btn btn-primary">Manage Facilities</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Visit Requests</h5>
+                        <p class="card-text">Create and manage visit requests.</p>
+                        <a href="visit-request.html" class="btn btn-primary">Create Visit Request</a>
+                        <a href="visit-list.html" class="btn btn-outline-primary mt-2">View All Requests</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Reports</h5>
+                        <p class="card-text">View reports and statistics.</p>
+                        <a href="reports.html" class="btn btn-primary">View Reports</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  <h2>Create Patient</h2>
-  <input type="text" id="createName" placeholder="Patient Name">
-  <textarea id="createVisitRequests" placeholder="Visit Requests (JSON Array)"></textarea>
-  <button onclick="createPatient()">Create Patient</button>
-
-  <h2>Get Patient</h2>
-  <input type="text" id="getPatientId" placeholder="Patient ID">
-  <button onclick="getPatient()">Get Patient</button>
-
-  <h2>Update Patient</h2>
-  <input type="text" id="updatePatientId" placeholder="Patient ID">
-  <textarea id="updateData" placeholder="Update Data (JSON Object)"></textarea>
-  <button onclick="updatePatient()">Update Patient</button>
-
-  <h2>Delete Patient</h2>
-  <input type="text" id="deletePatientId" placeholder="Patient ID">
-  <button onclick="deletePatient()">Delete Patient</button>
-
-  <h2>Get Patient List</h2>
-  <button onclick="getPatientList()">Get Patient List</button>
-
-  <div class="response" id="response"></div>
-
-  <script>
-    const apiUrl = 'https://www.nwgreens.org/api/patient'; // Replace with your API Gateway URL
-
-    async function createPatient() {
-      const name = document.getElementById('createName').value;
-      const visitRequests = document.getElementById('createVisitRequests').value;
-
-      try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name,
-            visitRequests: visitRequests ? JSON.parse(visitRequests) : []
-          })
-        });
-        const data = await response.json();
-        document.getElementById('response').innerText = JSON.stringify(data, null, 2);
-      } catch (error) {
-        document.getElementById('response').innerText = `Error: ${error.message}`;
-      }
-    }
-
-    async function getPatient() {
-      const patientId = document.getElementById('getPatientId').value;
-
-      try {
-        const response = await fetch(`${apiUrl}/${patientId}`);
-        const data = await response.json();
-        document.getElementById('response').innerText = JSON.stringify(data, null, 2);
-      } catch (error) {
-        document.getElementById('response').innerText = `Error: ${error.message}`;
-      }
-    }
-
-    async function updatePatient() {
-      const patientId = document.getElementById('updatePatientId').value;
-      const updateData = document.getElementById('updateData').value;
-
-      try {
-        const response = await fetch(`${apiUrl}/${patientId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: updateData
-        });
-        const data = await response.json();
-        document.getElementById('response').innerText = JSON.stringify(data, null, 2);
-      } catch (error) {
-        document.getElementById('response').innerText = `Error: ${error.message}`;
-      }
-    }
-
-    async function deletePatient() {
-      const patientId = document.getElementById('deletePatientId').value;
-
-      try {
-        const response = await fetch(`${apiUrl}/${patientId}`, {
-          method: 'DELETE'
-        });
-        if (response.status === 204) {
-          document.getElementById('response').innerText = 'Patient deleted successfully.';
-        } else {
-          const data = await response.json();
-          document.getElementById('response').innerText = JSON.stringify(data, null, 2);
-        }
-      } catch (error) {
-        document.getElementById('response').innerText = `Error: ${error.message}`;
-      }
-    }
-
-    async function getPatientList() {
-      try {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        document.getElementById('response').innerText = JSON.stringify(data, null, 2);
-      } catch (error) {
-        document.getElementById('response').innerText = `Error: ${error.message}`;
-      }
-    }
-  </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
