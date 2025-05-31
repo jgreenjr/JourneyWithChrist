@@ -25,7 +25,7 @@
   },
   "include":["lib", "bin", "lambda", "ui"],
   "exclude": [
-    "node_modules",
-    "cdk.out"
+    "cdk.out",
+    "node_modules"
   ]
 }

@@ -46,10 +46,13 @@
   <input type="text" id="deletePatientId" placeholder="Patient ID">
   <button onclick="deletePatient()">Delete Patient</button>
 
+  <h2>Get Patient List</h2>
+  <button onclick="getPatientList()">Get Patient List</button>
+
   <div class="response" id="response"></div>
 
   <script>
-    const apiUrl = 'https://<API_GATEWAY_URL>/patient'; // Replace with your API Gateway URL
+    const apiUrl = 'https://www.nwgreens.org/api/patient'; // Replace with your API Gateway URL
 
     async function createPatient() {
       const name = document.getElementById('createName').value;
@@ -113,6 +116,16 @@
           const data = await response.json();
           document.getElementById('response').innerText = JSON.stringify(data, null, 2);
         }
+      } catch (error) {
+        document.getElementById('response').innerText = `Error: ${error.message}`;
+      }
+    }
+
+    async function getPatientList() {
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        document.getElementById('response').innerText = JSON.stringify(data, null, 2);
       } catch (error) {
         document.getElementById('response').innerText = `Error: ${error.message}`;
       }

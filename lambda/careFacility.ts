@@ -1,6 +1,8 @@
-import { DynamoDB } from 'aws-sdk';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 
-const db = new DynamoDB.DocumentClient();
+const client = new DynamoDBClient({});
+const db = DynamoDBDocumentClient.from(client);
 const tableName = process.env.TABLE_NAME!;
 
 exports.handler = async (event: any) => {
@@ -24,12 +26,12 @@ exports.handler = async (event: any) => {
 };
 
 const listFacilities = async () => {
-  const result = await db.scan({ TableName: tableName }).promise();
+  const result = await db.send(new ScanCommand({ TableName: tableName }));
   return { statusCode: 200, body: JSON.stringify(result.Items) };
 };
 
 const getFacility = async (facilityId: string) => {
-  const result = await db.get({ TableName: tableName, Key: { facilityId } }).promise();
+  const result = await db.send(new GetCommand({ TableName: tableName, Key: { facilityId } }));
   return { statusCode: 200, body: JSON.stringify(result.Item) };
 };
 
@@ -57,7 +59,7 @@ const createFacility = async (facility: Partial<CareFacility>) => {
     primaryContactPhone: facility.primaryContactPhone,
   };
 
-  await db.put({ TableName: tableName, Item: newFacility }).promise();
+  await db.send(new PutCommand({ TableName: tableName, Item: newFacility }));
   return { statusCode: 201, body: JSON.stringify(newFacility) };
 };
 
@@ -69,25 +71,25 @@ const updateFacility = async (facilityId: string, updates: any) => {
     acc[`#${key}`] = key;
     return acc;
   }, {});
-  const expressionAttributeValues = Object.values(updates).reduce<DynamoDB.DocumentClient.ExpressionAttributeValueMap>((acc, value, idx) => {
+  const expressionAttributeValues = Object.values(updates).reduce<Record<string, any>>((acc, value, idx) => {
     acc[`:value${idx}`] = value;
     return acc;
   }, {});
 
-  await db
-    .update({
+  await db.send(
+    new UpdateCommand({
       TableName: tableName,
       Key: { facilityId },
       UpdateExpression: `SET ${updateExpression}`,
       ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: expressionAttributeValues,
     })
-    .promise();
+  );
 
   return { statusCode: 200, body: JSON.stringify({ facilityId, ...updates }) };
 };
 
 const deleteFacility = async (facilityId: string) => {
-  await db.delete({ TableName: tableName, Key: { facilityId } }).promise();
+  await db.send(new DeleteCommand({ TableName: tableName, Key: { facilityId } }));
   return { statusCode: 204 };
 };
