@@ -61,38 +61,12 @@ export class CareFacilityApiStack extends cdk.Stack {
     const careFacilityResource = api.root.addResource('care-facility');
     careFacilityResource.addMethod('ANY', new apigateway.LambdaIntegration(careFacilityLambda));
 
-    // DynamoDB table for patients
-    const patientTable = new dynamodb.Table(this, 'PatientTable', {
-      partitionKey: { name: 'patientId', type: dynamodb.AttributeType.STRING },
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
-    });
-    
     // DynamoDB table for visit requests
     const visitRequestTable = new dynamodb.Table(this, 'VisitRequestTable', {
       partitionKey: { name: 'requestId', type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
     });
-    
-    // Add a Global Secondary Index for querying visit requests by patientId
-    visitRequestTable.addGlobalSecondaryIndex({
-      indexName: 'PatientIdIndex',
-      partitionKey: { name: 'patientId', type: dynamodb.AttributeType.STRING },
-      projectionType: dynamodb.ProjectionType.ALL
-    });
 
-    // Patient Lambda function
-    const patientLambda = new lambda.Function(this, 'PatientHandler', {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      code: lambda.Code.fromAsset('lambda'),
-      handler: 'patient.handler',
-      environment: {
-        PATIENT_TABLE_NAME: patientTable.tableName,
-      },
-    });
-
-    // Grant permissions to the Patient Lambda
-    patientTable.grantReadWriteData(patientLambda);
-    
     // Visit Request Lambda function
     const visitRequestLambda = new lambda.Function(this, 'VisitRequestHandler', {
       runtime: lambda.Runtime.NODEJS_18_X,
@@ -106,19 +80,6 @@ export class CareFacilityApiStack extends cdk.Stack {
     // Grant permissions to the Visit Request Lambda
     visitRequestTable.grantReadWriteData(visitRequestLambda);
 
-    // API Gateway for Patient
-    const patientResource = api.root.addResource('patient');
-    
-    // Add ANY method for actual API calls
-    patientResource.addMethod('ANY', new apigateway.LambdaIntegration(patientLambda), {
-      methodResponses: [{
-        statusCode: '200',
-        responseParameters: {
-          'method.response.header.Access-Control-Allow-Origin': true,
-        },
-      }],
-    });
-    
     // API Gateway for Visit Request - adding to the main API
     const visitRequestResource = api.root.addResource('visit-request');
     

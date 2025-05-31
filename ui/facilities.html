@@ -36,9 +36,10 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Name</th>
+                        <th>Building Name</th>
                         <th>Address</th>
-                        <th>Contact Number</th>
+                        <th>Primary Contact</th>
+                        <th>Contact Phone</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -76,20 +77,20 @@
                 <div class="modal-body">
                     <form id="addFacilityForm">
                         <div class="mb-3">
-                            <label for="facilityName" class="form-label">Facility Name</label>
-                            <input type="text" class="form-control" id="facilityName" required>
+                            <label for="buildingName" class="form-label">Building Name</label>
+                            <input type="text" class="form-control" id="buildingName" required>
                         </div>
                         <div class="mb-3">
                             <label for="address" class="form-label">Address</label>
                             <input type="text" class="form-control" id="address" required>
                         </div>
                         <div class="mb-3">
-                            <label for="contactNumber" class="form-label">Contact Number</label>
-                            <input type="tel" class="form-control" id="contactNumber">
+                            <label for="primaryContactName" class="form-label">Primary Contact Name</label>
+                            <input type="text" class="form-control" id="primaryContactName" required>
                         </div>
                         <div class="mb-3">
-                            <label for="notes" class="form-label">Notes</label>
-                            <textarea class="form-control" id="notes" rows="3"></textarea>
+                            <label for="primaryContactPhone" class="form-label">Primary Contact Phone</label>
+                            <input type="tel" class="form-control" id="primaryContactPhone" required>
                         </div>
                     </form>
                     <div id="modalErrorAlert" class="alert alert-danger d-none mt-3" role="alert">
@@ -120,7 +121,7 @@
                 if (facilities.length === 0) {
                     tableBody.innerHTML = `
                         <tr>
-                            <td colspan="5" class="text-center">No facilities found.</td>
+                            <td colspan="6" class="text-center">No facilities found.</td>
                         </tr>
                     `;
                 } else {
@@ -128,9 +129,10 @@
                         tableBody.innerHTML += `
                             <tr>
                                 <td>${facility.facilityId}</td>
-                                <td>${facility.name}</td>
-                                <td>${facility.address || '-'}</td>
-                                <td>${facility.contactNumber || '-'}</td>
+                                <td>${facility.buildingName}</td>
+                                <td>${facility.address}</td>
+                                <td>${facility.primaryContactName}</td>
+                                <td>${facility.primaryContactPhone}</td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-primary" onclick="viewFacility('${facility.facilityId}')">View</button>
                                 </td>
@@ -157,13 +159,13 @@
         
         // Save new facility
         async function saveFacility() {
-            const name = document.getElementById('facilityName').value;
+            const buildingName = document.getElementById('buildingName').value;
             const address = document.getElementById('address').value;
-            const contactNumber = document.getElementById('contactNumber').value;
-            const notes = document.getElementById('notes').value;
+            const primaryContactName = document.getElementById('primaryContactName').value;
+            const primaryContactPhone = document.getElementById('primaryContactPhone').value;
             
-            if (!name || !address) {
-                document.getElementById('modalErrorAlert').textContent = 'Facility name and address are required.';
+            if (!buildingName || !address || !primaryContactName || !primaryContactPhone) {
+                document.getElementById('modalErrorAlert').textContent = 'All fields are required.';
                 document.getElementById('modalErrorAlert').classList.remove('d-none');
                 return;
             }
@@ -175,10 +177,10 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        name,
+                        buildingName,
                         address,
-                        contactNumber,
-                        notes
+                        primaryContactName,
+                        primaryContactPhone
                     })
                 });
                 

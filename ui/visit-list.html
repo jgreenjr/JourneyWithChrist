@@ -42,9 +42,9 @@
                 <thead>
                     <tr>
                         <th>Patient</th>
+                        <th>Phone</th>
                         <th>Facility</th>
                         <th>Room</th>
-                        <th>Floor</th>
                         <th>Requested At</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -75,36 +75,26 @@
 
     <script>
         const apiBaseUrl = '/api';
-        const patientsMap = new Map();
         const facilitiesMap = new Map();
         
-        // Load patients and facilities data
-        async function loadReferenceData() {
+        // Load facilities data
+        async function loadFacilities() {
             try {
-                // Load patients
-                const patientsResponse = await fetch(`${apiBaseUrl}/patient`);
-                if (!patientsResponse.ok) throw new Error('Failed to fetch patients');
-                const patients = await patientsResponse.json();
-                
-                patients.forEach(patient => {
-                    patientsMap.set(patient.patientId, `${patient.firstName} ${patient.lastName}`);
-                });
-                
                 // Load facilities
                 const facilitiesResponse = await fetch(`${apiBaseUrl}/care-facility`);
                 if (!facilitiesResponse.ok) throw new Error('Failed to fetch facilities');
                 const facilities = await facilitiesResponse.json();
                 
                 facilities.forEach(facility => {
-                    facilitiesMap.set(facility.facilityId, facility.name);
+                    facilitiesMap.set(facility.facilityId, facility.buildingName);
                 });
                 
-                // After reference data is loaded, load visit requests
+                // After facilities are loaded, load visit requests
                 await loadVisitRequests();
                 
             } catch (error) {
-                console.error('Error loading reference data:', error);
-                document.getElementById('errorAlert').textContent = 'Failed to load reference data.';
+                console.error('Error loading facilities:', error);
+                document.getElementById('errorAlert').textContent = 'Failed to load facilities.';
                 document.getElementById('errorAlert').classList.remove('d-none');
                 document.getElementById('loadingMessage').classList.add('d-none');
             }
@@ -128,7 +118,7 @@
                     `;
                 } else {
                     visitRequests.forEach(request => {
-                        const patientName = patientsMap.get(request.patientId) || 'Unknown';
+                        const patientName = `${request.patientFirstName} ${request.patientLastName}`;
                         const facilityName = facilitiesMap.get(request.facilityId) || 'Unknown';
                         const requestDate = new Date(request.requestedAt).toLocaleString();
                         const statusClass = request.active ? 'badge-active' : 'badge-inactive';
@@ -137,9 +127,9 @@
                         tableBody.innerHTML += `
                             <tr>
                                 <td>${patientName}</td>
+                                <td>${request.patientPhoneNumber || '-'}</td>
                                 <td>${facilityName}</td>
                                 <td>${request.roomNumber}</td>
-                                <td>${request.floor || '-'}</td>
                                 <td>${requestDate}</td>
                                 <td><span class="badge ${statusClass}">${statusText}</span></td>
                                 <td>
@@ -185,7 +175,7 @@
                 if (!response.ok) throw new Error('Failed to update visit request');
                 
                 // Reload the list
-                loadReferenceData();
+                loadFacilities();
                 
             } catch (error) {
                 console.error('Error updating visit request:', error);
@@ -196,7 +186,7 @@
         
         // Load data when page loads
         window.addEventListener('DOMContentLoaded', () => {
-            loadReferenceData();
+            loadFacilities();
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

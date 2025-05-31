@@ -29,10 +29,16 @@
         <h1>Create Visit Request</h1>
         <form id="visitRequestForm">
             <div class="mb-3">
-                <label for="patientSelect" class="form-label">Patient</label>
-                <select class="form-select" id="patientSelect" required>
-                    <option value="" selected disabled>Select a patient</option>
-                </select>
+                <label for="patientFirstName" class="form-label">Patient First Name</label>
+                <input type="text" class="form-control" id="patientFirstName" required>
+            </div>
+            <div class="mb-3">
+                <label for="patientLastName" class="form-label">Patient Last Name</label>
+                <input type="text" class="form-control" id="patientLastName" required>
+            </div>
+            <div class="mb-3">
+                <label for="patientPhoneNumber" class="form-label">Patient Phone Number</label>
+                <input type="tel" class="form-control" id="patientPhoneNumber">
             </div>
             <div class="mb-3">
                 <label for="facilitySelect" class="form-label">Care Facility</label>
@@ -72,28 +78,6 @@
     <script>
         const apiBaseUrl = '/api';
         
-        // Fetch patients for dropdown
-        async function loadPatients() {
-            try {
-                const response = await fetch(`${apiBaseUrl}/patient`);
-                if (!response.ok) throw new Error('Failed to fetch patients');
-                
-                const patients = await response.json();
-                const patientSelect = document.getElementById('patientSelect');
-                
-                patients.forEach(patient => {
-                    const option = document.createElement('option');
-                    option.value = patient.patientId;
-                    option.textContent = `${patient.firstName} ${patient.lastName}`;
-                    patientSelect.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Error loading patients:', error);
-                document.getElementById('errorAlert').textContent = 'Failed to load patients.';
-                document.getElementById('errorAlert').classList.remove('d-none');
-            }
-        }
-        
         // Fetch care facilities for dropdown
         async function loadCareFacilities() {
             try {
@@ -106,7 +90,7 @@
                 facilities.forEach(facility => {
                     const option = document.createElement('option');
                     option.value = facility.facilityId;
-                    option.textContent = facility.name;
+                    option.textContent = facility.buildingName;
                     facilitySelect.appendChild(option);
                 });
             } catch (error) {
@@ -120,7 +104,9 @@
         document.getElementById('visitRequestForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const patientId = document.getElementById('patientSelect').value;
+            const patientFirstName = document.getElementById('patientFirstName').value;
+            const patientLastName = document.getElementById('patientLastName').value;
+            const patientPhoneNumber = document.getElementById('patientPhoneNumber').value;
             const facilityId = document.getElementById('facilitySelect').value;
             const roomNumber = document.getElementById('roomNumber').value;
             const floor = document.getElementById('floor').value;
@@ -128,7 +114,9 @@
             const followUpRequested = document.getElementById('followUpRequested').checked;
             
             const visitRequest = {
-                patientId,
+                patientFirstName,
+                patientLastName,
+                patientPhoneNumber,
                 facilityId,
                 roomNumber,
                 floor,
@@ -167,7 +155,6 @@
         
         // Load data when page loads
         window.addEventListener('DOMContentLoaded', () => {
-            loadPatients();
             loadCareFacilities();
         });
     </script>

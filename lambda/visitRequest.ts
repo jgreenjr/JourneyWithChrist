@@ -8,7 +8,9 @@ const tableName = process.env.VISIT_REQUEST_TABLE_NAME!;
 // Define the VisitRequest interface
 interface VisitRequest {
   requestId: string;
-  patientId: string;
+  patientFirstName: string;
+  patientLastName: string;
+  patientPhoneNumber?: string;
   roomNumber: string;
   floor: string;
   facilityId: string;
@@ -27,8 +29,6 @@ exports.handler = async (event: any) => {
     case 'GET':
       if (pathParameters && pathParameters.requestId) {
         return getVisitRequest(pathParameters.requestId);
-      } else if (queryStringParameters && queryStringParameters.patientId) {
-        return getVisitRequestsByPatient(queryStringParameters.patientId);
       }
       return listVisitRequests();
     case 'POST':
@@ -52,28 +52,18 @@ const getVisitRequest = async (requestId: string) => {
   return { statusCode: 200, body: JSON.stringify(result.Item) };
 };
 
-const getVisitRequestsByPatient = async (patientId: string) => {
-  const result = await db.send(new QueryCommand({
-    TableName: tableName,
-    IndexName: 'PatientIdIndex',
-    KeyConditionExpression: 'patientId = :patientId',
-    ExpressionAttributeValues: {
-      ':patientId': patientId
-    }
-  }));
-  return { statusCode: 200, body: JSON.stringify(result.Items) };
-};
-
 const createVisitRequest = async (visitRequest: Partial<VisitRequest>) => {
   // Validate required fields
-  if (!visitRequest.patientId || !visitRequest.roomNumber || !visitRequest.facilityId) {
-    return { statusCode: 400, body: 'Missing required fields: patientId, roomNumber, or facilityId' };
+  if (!visitRequest.patientFirstName || !visitRequest.patientLastName || !visitRequest.roomNumber || !visitRequest.facilityId) {
+    return { statusCode: 400, body: 'Missing required fields: patientFirstName, patientLastName, roomNumber, or facilityId' };
   }
 
   const requestId = `${Date.now()}`;
   const newVisitRequest: VisitRequest = {
     requestId,
-    patientId: visitRequest.patientId,
+    patientFirstName: visitRequest.patientFirstName,
+    patientLastName: visitRequest.patientLastName,
+    patientPhoneNumber: visitRequest.patientPhoneNumber || '',
     roomNumber: visitRequest.roomNumber,
     floor: visitRequest.floor || '',
     facilityId: visitRequest.facilityId,
