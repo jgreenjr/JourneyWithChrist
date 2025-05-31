@@ -11,21 +11,6 @@ interface Patient {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
-  visitRequests: VisitRequest[];
-}
-
-// Define the VisitRequest interface
-interface VisitRequest {
-  requestId: string;
-  roomNumber: string;
-  floor: string;
-  facilityId: string;
-  active: boolean;
-  notes: string;
-  followUpRequested: boolean;
-  visitedBy: string | null;
-  requestedAt: string;
-  visitedAt: string | null;
 }
 
 exports.handler = async (event: any) => {
@@ -70,7 +55,6 @@ const createPatient = async (patient: Partial<Patient>) => {
     firstName: patient.firstName,
     lastName: patient.lastName,
     phoneNumber: patient.phoneNumber || '',
-    visitRequests: patient.visitRequests || [],
   };
 
   await db.send(new PutCommand({ TableName: tableName, Item: newPatient }));

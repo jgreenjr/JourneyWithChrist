@@ -55,6 +55,8 @@ export class CareFacilityApiStack extends cdk.Stack {
         types: [apigateway.EndpointType.REGIONAL]
       },
     });
+    
+    // We'll use the main API for Visit Requests instead of a separate API
 
     const careFacilityResource = api.root.addResource('care-facility');
     careFacilityResource.addMethod('ANY', new apigateway.LambdaIntegration(careFacilityLambda));
@@ -63,6 +65,19 @@ export class CareFacilityApiStack extends cdk.Stack {
     const patientTable = new dynamodb.Table(this, 'PatientTable', {
       partitionKey: { name: 'patientId', type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
+    });
+    
+    // DynamoDB table for visit requests
+    const visitRequestTable = new dynamodb.Table(this, 'VisitRequestTable', {
+      partitionKey: { name: 'requestId', type: dynamodb.AttributeType.STRING },
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
+    });
+    
+    // Add a Global Secondary Index for querying visit requests by patientId
+    visitRequestTable.addGlobalSecondaryIndex({
+      indexName: 'PatientIdIndex',
+      partitionKey: { name: 'patientId', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL
     });
 
     // Patient Lambda function
@@ -77,12 +92,38 @@ export class CareFacilityApiStack extends cdk.Stack {
 
     // Grant permissions to the Patient Lambda
     patientTable.grantReadWriteData(patientLambda);
+    
+    // Visit Request Lambda function
+    const visitRequestLambda = new lambda.Function(this, 'VisitRequestHandler', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      code: lambda.Code.fromAsset('lambda'),
+      handler: 'visitRequest.handler',
+      environment: {
+        VISIT_REQUEST_TABLE_NAME: visitRequestTable.tableName,
+      },
+    });
+
+    // Grant permissions to the Visit Request Lambda
+    visitRequestTable.grantReadWriteData(visitRequestLambda);
 
     // API Gateway for Patient
     const patientResource = api.root.addResource('patient');
     
     // Add ANY method for actual API calls
     patientResource.addMethod('ANY', new apigateway.LambdaIntegration(patientLambda), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }],
+    });
+    
+    // API Gateway for Visit Request - adding to the main API
+    const visitRequestResource = api.root.addResource('visit-request');
+    
+    // Add ANY method for visit request API calls
+    visitRequestResource.addMethod('ANY', new apigateway.LambdaIntegration(visitRequestLambda), {
       methodResponses: [{
         statusCode: '200',
         responseParameters: {
@@ -153,12 +194,12 @@ export class CareFacilityApiStack extends cdk.Stack {
           return request;
         }
       `),
-      comment: 'Rewrites /api/* paths to /* for API Gateway',
+      comment: 'Rewrites API paths for API Gateway',
     });
     
     // We'll use a built-in policy instead of a custom one
     
-    // Add a behavior for the API Gateway using HttpOrigin instead of RestApiOrigin
+    // Add a behavior for the main API Gateway
     distribution.addBehavior('/api/*', new origins.HttpOrigin(`${api.restApiId}.execute-api.${this.region}.amazonaws.com`, {
       originPath: '/prod',
       protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
@@ -175,6 +216,8 @@ export class CareFacilityApiStack extends cdk.Stack {
         eventType: cloudfront.FunctionEventType.VIEWER_REQUEST
       }]
     });
+    
+    // Visit requests are now part of the main API, so we don't need a separate behavior
 
     // Create a Route 53 record to point to the CloudFront distribution
     new route53.ARecord(this, 'UiAliasRecord', {
@@ -202,10 +245,15 @@ export class CareFacilityApiStack extends cdk.Stack {
       description: 'The endpoint URL of the API Gateway',
     });
     
-    // Output the CloudFront API URL
+    // Output the CloudFront API URLs
     new cdk.CfnOutput(this, 'CloudFrontAPIUrl', {
       value: `https://${distribution.distributionDomainName}/api/patient`,
-      description: 'The URL of the API through CloudFront',
+      description: 'The URL of the Patient API through CloudFront',
+    });
+    
+    new cdk.CfnOutput(this, 'CloudFrontVisitAPIUrl', {
+      value: `https://${distribution.distributionDomainName}/api/visit-request`,
+      description: 'The URL of the Visit Request API through CloudFront',
     });
   }
 }
