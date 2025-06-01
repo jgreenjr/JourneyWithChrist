@@ -126,6 +126,51 @@
             </div>
         </div>
     </div>
+    
+    <!-- Complete Visit Modal -->
+    <div class="modal fade" id="completeVisitModal" tabindex="-1" aria-labelledby="completeVisitModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="completeVisitModalLabel">Complete Visit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="completeVisitDetailsModal" class="mb-4">
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <p class="fw-bold mb-0">Patient:</p>
+                                <p id="completeModalPatientName"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="fw-bold mb-0">Facility:</p>
+                                <p id="completeModalFacilityName"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form id="completeForm">
+                        <input type="hidden" id="completeRequestId">
+                        <div class="mb-3">
+                            <label for="visitNotes" class="form-label">Visit Notes:</label>
+                            <textarea class="form-control" id="visitNotes" rows="4" placeholder="Enter notes about the visit"></textarea>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="followUpNeeded">
+                            <label class="form-check-label" for="followUpNeeded">Follow-up Required</label>
+                        </div>
+                    </form>
+                    <div id="completeModalErrorAlert" class="alert alert-danger d-none mt-3" role="alert">
+                        Error completing visit.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmCompleteBtn">Complete Visit</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         const apiBaseUrl = '/api';
@@ -205,7 +250,7 @@
                                 <td>
                                     <a href="visit-details.html?id=${request.requestId}" class="btn btn-sm btn-outline-primary">View</a>
                                     ${request.active ? `<button class="btn btn-sm btn-outline-info ms-1" onclick="openAssignModal('${request.requestId}')">Assign</button>` : ''}
-                                    ${request.active ? `<button class="btn btn-sm btn-outline-success ms-1" onclick="markCompleted('${request.requestId}')">Complete</button>` : 
+                                    ${request.active ? `<button class="btn btn-sm btn-outline-success ms-1" onclick="openCompleteModal('${request.requestId}')">Complete</button>` : 
                                     `<button class="btn btn-sm btn-outline-warning ms-1" onclick="reopenVisit('${request.requestId}')">Reopen</button>`}
                                 </td>
                             </tr>
@@ -264,6 +309,72 @@
             modal.show();
         }
         
+        // Open complete modal
+        function openCompleteModal(requestId) {
+            const request = visitRequests.find(r => r.requestId === requestId);
+            if (!request) return;
+            
+            // Populate modal with visit details
+            document.getElementById('completeRequestId').value = requestId;
+            document.getElementById('completeModalPatientName').textContent = `${request.patientFirstName} ${request.patientLastName}`;
+            document.getElementById('completeModalFacilityName').textContent = facilitiesMap.get(request.facilityId) || 'Unknown';
+            
+            // Clear previous inputs and error
+            document.getElementById('visitNotes').value = '';
+            document.getElementById('followUpNeeded').checked = false;
+            document.getElementById('completeModalErrorAlert').classList.add('d-none');
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('completeVisitModal'));
+            modal.show();
+        }
+        
+        // Complete visit with notes and follow-up status
+        async function completeVisit() {
+            const requestId = document.getElementById('completeRequestId').value;
+            const visitNotes = document.getElementById('visitNotes').value;
+            const followUpNeeded = document.getElementById('followUpNeeded').checked;
+            
+            try {
+                // Get the current request to merge notes
+                const request = visitRequests.find(r => r.requestId === requestId);
+                if (!request) throw new Error('Visit request not found');
+                
+                // Merge existing notes with new visit notes
+                let updatedNotes = request.notes || '';
+                if (visitNotes) {
+                    if (updatedNotes) updatedNotes += '\n\n';
+                    updatedNotes += `Visit Notes (${new Date().toLocaleDateString()}): ${visitNotes}`;
+                }
+                
+                const response = await fetch(`${apiBaseUrl}/visit-request/${requestId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        active: false,
+                        visitedAt: new Date().toISOString(),
+                        visitedBy: 'Current User', // In a real app, get this from authentication
+                        notes: updatedNotes,
+                        followUpRequested: followUpNeeded
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to complete visit request');
+                
+                // Close modal and reload data
+                const modal = bootstrap.Modal.getInstance(document.getElementById('completeVisitModal'));
+                modal.hide();
+                loadReferenceData();
+                
+            } catch (error) {
+                console.error('Error completing visit request:', error);
+                document.getElementById('completeModalErrorAlert').textContent = 'Failed to complete visit request.';
+                document.getElementById('completeModalErrorAlert').classList.remove('d-none');
+            }
+        }
+        
         // Assign user to visit
         async function assignUser() {
             const requestId = document.getElementById('assignRequestId').value;
@@ -300,33 +411,6 @@
             }
         }
         
-        // Mark request as completed
-        async function markCompleted(requestId) {
-            try {
-                const response = await fetch(`${apiBaseUrl}/visit-request/${requestId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        active: false,
-                        visitedAt: new Date().toISOString(),
-                        visitedBy: 'Current User' // In a real app, get this from authentication
-                    })
-                });
-                
-                if (!response.ok) throw new Error('Failed to update visit request');
-                
-                // Reload the list
-                loadReferenceData();
-                
-            } catch (error) {
-                console.error('Error updating visit request:', error);
-                document.getElementById('errorAlert').textContent = 'Failed to update visit request.';
-                document.getElementById('errorAlert').classList.remove('d-none');
-            }
-        }
-        
         // Reopen a completed visit
         async function reopenVisit(requestId) {
             try {
@@ -358,6 +442,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             loadReferenceData();
             document.getElementById('assignUserBtn').addEventListener('click', assignUser);
+            document.getElementById('confirmCompleteBtn').addEventListener('click', completeVisit);
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

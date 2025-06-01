@@ -124,7 +124,7 @@
         </div>
         
         <div class="mt-4">
-            <button id="completeBtn" class="btn btn-success d-none">Mark as Completed</button>
+            <button id="completeBtn" class="btn btn-success d-none" data-bs-toggle="modal" data-bs-target="#completeVisitModal">Mark as Completed</button>
             <button id="reopenBtn" class="btn btn-warning d-none">Reopen Visit</button>
             <button id="assignBtn" class="btn btn-info d-none" data-bs-toggle="modal" data-bs-target="#assignUserModal">Assign User</button>
             <a href="visit-list.html" class="btn btn-secondary">Back to List</a>
@@ -159,12 +159,44 @@
             </div>
         </div>
     </div>
+    
+    <!-- Complete Visit Modal -->
+    <div class="modal fade" id="completeVisitModal" tabindex="-1" aria-labelledby="completeVisitModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="completeVisitModalLabel">Complete Visit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="completeForm">
+                        <div class="mb-3">
+                            <label for="visitNotes" class="form-label">Visit Notes:</label>
+                            <textarea class="form-control" id="visitNotes" rows="4" placeholder="Enter notes about the visit"></textarea>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="followUpNeeded">
+                            <label class="form-check-label" for="followUpNeeded">Follow-up Required</label>
+                        </div>
+                    </form>
+                    <div id="completeModalErrorAlert" class="alert alert-danger d-none mt-3" role="alert">
+                        Error completing visit.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmCompleteBtn">Complete Visit</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         const apiBaseUrl = '/api';
         let requestId;
         const usersMap = new Map();
         let assignableUsers = [];
+        let currentVisitRequest;
         
         // Get request ID from URL
         function getRequestIdFromUrl() {
@@ -223,10 +255,10 @@
                 const response = await fetch(`${apiBaseUrl}/visit-request/${requestId}`);
                 if (!response.ok) throw new Error('Failed to fetch visit request');
                 
-                const request = await response.json();
+                currentVisitRequest = await response.json();
                 
                 // Load facility details
-                const facilityResponse = await fetch(`${apiBaseUrl}/care-facility/${request.facilityId}`);
+                const facilityResponse = await fetch(`${apiBaseUrl}/care-facility/${currentVisitRequest.facilityId}`);
                 let facilityName = 'Unknown';
                 
                 if (facilityResponse.ok) {
@@ -235,32 +267,32 @@
                 }
                 
                 // Populate details
-                document.getElementById('requestId').textContent = request.requestId;
+                document.getElementById('requestId').textContent = currentVisitRequest.requestId;
                 
                 const statusElement = document.getElementById('status');
-                statusElement.textContent = request.active ? 'Active' : 'Completed';
-                statusElement.className = `badge ${request.active ? 'badge-active' : 'badge-inactive'}`;
+                statusElement.textContent = currentVisitRequest.active ? 'Active' : 'Completed';
+                statusElement.className = `badge ${currentVisitRequest.active ? 'badge-active' : 'badge-inactive'}`;
                 
-                document.getElementById('patientName').textContent = `${request.patientFirstName} ${request.patientLastName}`;
-                document.getElementById('patientPhone').textContent = request.patientPhoneNumber || '-';
+                document.getElementById('patientName').textContent = `${currentVisitRequest.patientFirstName} ${currentVisitRequest.patientLastName}`;
+                document.getElementById('patientPhone').textContent = currentVisitRequest.patientPhoneNumber || '-';
                 document.getElementById('facility').textContent = facilityName;
-                document.getElementById('roomNumber').textContent = request.roomNumber;
-                document.getElementById('floor').textContent = request.floor || '-';
-                document.getElementById('followUp').textContent = request.followUpRequested ? 'Yes' : 'No';
-                document.getElementById('requestedAt').textContent = new Date(request.requestedAt).toLocaleString();
-                document.getElementById('visitedAt').textContent = request.visitedAt ? new Date(request.visitedAt).toLocaleString() : '-';
-                document.getElementById('visitedBy').textContent = request.visitedBy || '-';
-                document.getElementById('assignedTo').textContent = request.assignedUserId ? usersMap.get(request.assignedUserId) || 'Unknown' : '-';
-                document.getElementById('notes').textContent = request.notes || '-';
+                document.getElementById('roomNumber').textContent = currentVisitRequest.roomNumber;
+                document.getElementById('floor').textContent = currentVisitRequest.floor || '-';
+                document.getElementById('followUp').textContent = currentVisitRequest.followUpRequested ? 'Yes' : 'No';
+                document.getElementById('requestedAt').textContent = new Date(currentVisitRequest.requestedAt).toLocaleString();
+                document.getElementById('visitedAt').textContent = currentVisitRequest.visitedAt ? new Date(currentVisitRequest.visitedAt).toLocaleString() : '-';
+                document.getElementById('visitedBy').textContent = currentVisitRequest.visitedBy || '-';
+                document.getElementById('assignedTo').textContent = currentVisitRequest.assignedUserId ? usersMap.get(currentVisitRequest.assignedUserId) || 'Unknown' : '-';
+                document.getElementById('notes').textContent = currentVisitRequest.notes || '-';
                 
                 // Show action buttons based on status
-                if (request.active) {
+                if (currentVisitRequest.active) {
                     document.getElementById('completeBtn').classList.remove('d-none');
                     document.getElementById('assignBtn').classList.remove('d-none');
                     
                     // If already assigned, preselect the user in the dropdown
-                    if (request.assignedUserId) {
-                        document.getElementById('userSelect').value = request.assignedUserId;
+                    if (currentVisitRequest.assignedUserId) {
+                        document.getElementById('userSelect').value = currentVisitRequest.assignedUserId;
                     }
                 } else {
                     // Show reopen button for completed visits
@@ -275,6 +307,47 @@
                 document.getElementById('errorAlert').classList.remove('d-none');
                 document.getElementById('loadingMessage').classList.add('d-none');
                 document.getElementById('visitDetails').classList.add('d-none');
+            }
+        }
+        
+        // Complete visit with notes and follow-up status
+        async function completeVisit() {
+            const visitNotes = document.getElementById('visitNotes').value;
+            const followUpNeeded = document.getElementById('followUpNeeded').checked;
+            
+            try {
+                // Merge existing notes with new visit notes
+                let updatedNotes = currentVisitRequest.notes || '';
+                if (visitNotes) {
+                    if (updatedNotes) updatedNotes += '\n\n';
+                    updatedNotes += `Visit Notes (${new Date().toLocaleDateString()}): ${visitNotes}`;
+                }
+                
+                const response = await fetch(`${apiBaseUrl}/visit-request/${requestId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        active: false,
+                        visitedAt: new Date().toISOString(),
+                        visitedBy: 'Current User', // In a real app, get this from authentication
+                        notes: updatedNotes,
+                        followUpRequested: followUpNeeded
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to complete visit request');
+                
+                // Close modal and reload page
+                const modal = bootstrap.Modal.getInstance(document.getElementById('completeVisitModal'));
+                modal.hide();
+                window.location.reload();
+                
+            } catch (error) {
+                console.error('Error completing visit request:', error);
+                document.getElementById('completeModalErrorAlert').textContent = 'Failed to complete visit request.';
+                document.getElementById('completeModalErrorAlert').classList.remove('d-none');
             }
         }
         
@@ -313,33 +386,6 @@
             }
         }
         
-        // Mark request as completed
-        async function markCompleted() {
-            try {
-                const response = await fetch(`${apiBaseUrl}/visit-request/${requestId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        active: false,
-                        visitedAt: new Date().toISOString(),
-                        visitedBy: 'Current User' // In a real app, get this from authentication
-                    })
-                });
-                
-                if (!response.ok) throw new Error('Failed to update visit request');
-                
-                // Reload the page to show updated details
-                window.location.reload();
-                
-            } catch (error) {
-                console.error('Error updating visit request:', error);
-                document.getElementById('errorAlert').textContent = 'Failed to update visit request.';
-                document.getElementById('errorAlert').classList.remove('d-none');
-            }
-        }
-        
         // Reopen a completed visit
         async function reopenVisit() {
             try {
@@ -371,7 +417,7 @@
         window.addEventListener('DOMContentLoaded', async () => {
             await loadUsers();
             await loadVisitRequestDetails();
-            document.getElementById('completeBtn').addEventListener('click', markCompleted);
+            document.getElementById('confirmCompleteBtn').addEventListener('click', completeVisit);
             document.getElementById('reopenBtn').addEventListener('click', reopenVisit);
             document.getElementById('assignUserBtn').addEventListener('click', assignUser);
         });
