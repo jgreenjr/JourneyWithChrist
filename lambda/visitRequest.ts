@@ -116,6 +116,19 @@ const deleteVisitRequest = async (requestId: string) => {
 };
 
 const getVisitRequestsByAssignedUser = async (assignedUserId: string) => {
+  // Handle special case for unassigned visits
+  if (assignedUserId === 'unassigned') {
+    const result = await db.send(new ScanCommand({
+      TableName: tableName,
+      FilterExpression: 'attribute_not_exists(assignedUserId) OR assignedUserId = :null',
+      ExpressionAttributeValues: {
+        ':null': null
+      }
+    }));
+    return { statusCode: 200, body: JSON.stringify(result.Items) };
+  }
+  
+  // Normal case - query by assignedUserId
   const result = await db.send(new QueryCommand({
     TableName: tableName,
     IndexName: 'AssignedUserIndex',

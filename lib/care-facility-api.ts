@@ -79,13 +79,6 @@ export class CareFacilityApiStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
     });
     
-    // Add a Global Secondary Index for querying visit requests by assignedUserId
-    visitRequestTable.addGlobalSecondaryIndex({
-      indexName: 'AssignedUserIndex',
-      partitionKey: { name: 'assignedUserId', type: dynamodb.AttributeType.STRING },
-      projectionType: dynamodb.ProjectionType.ALL
-    });
-    
     // DynamoDB table for users
     const userTable = new dynamodb.Table(this, 'UserTable', {
       partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
