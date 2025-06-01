@@ -31,6 +31,9 @@ exports.handler = async (event: any) => {
       if (pathParameters && pathParameters.requestId) {
         return getVisitRequest(pathParameters.requestId);
       }
+      if (queryStringParameters && queryStringParameters.assignedUserId) {
+        return getVisitRequestsByAssignedUser(queryStringParameters.assignedUserId);
+      }
       return listVisitRequests();
     case 'POST':
       return createVisitRequest(JSON.parse(body));
@@ -110,4 +113,16 @@ const updateVisitRequest = async (requestId: string, updates: Partial<VisitReque
 const deleteVisitRequest = async (requestId: string) => {
   await db.send(new DeleteCommand({ TableName: tableName, Key: { requestId } }));
   return { statusCode: 204 };
+};
+
+const getVisitRequestsByAssignedUser = async (assignedUserId: string) => {
+  const result = await db.send(new QueryCommand({
+    TableName: tableName,
+    IndexName: 'AssignedUserIndex',
+    KeyConditionExpression: 'assignedUserId = :assignedUserId',
+    ExpressionAttributeValues: {
+      ':assignedUserId': assignedUserId
+    }
+  }));
+  return { statusCode: 200, body: JSON.stringify(result.Items) };
 };
