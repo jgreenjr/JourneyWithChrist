@@ -74,10 +74,65 @@
         </div>
     </div>
 
+    <!-- Assign User Modal -->
+    <div class="modal fade" id="assignUserModal" tabindex="-1" aria-labelledby="assignUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignUserModalLabel">Assign Visit Request</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="visitDetailsModal" class="mb-4">
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <p class="fw-bold mb-0">Patient:</p>
+                                <p id="modalPatientName"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="fw-bold mb-0">Facility:</p>
+                                <p id="modalFacilityName"></p>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <p class="fw-bold mb-0">Room:</p>
+                                <p id="modalRoomNumber"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="fw-bold mb-0">Floor:</p>
+                                <p id="modalFloor"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form id="assignForm">
+                        <input type="hidden" id="assignRequestId">
+                        <div class="mb-3">
+                            <label for="userSelect" class="form-label">Assign to User:</label>
+                            <select class="form-select" id="userSelect" required>
+                                <option value="" selected disabled>Select a user</option>
+                            </select>
+                        </div>
+                    </form>
+                    <div id="modalErrorAlert" class="alert alert-danger d-none mt-3" role="alert">
+                        Error assigning user.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="assignUserBtn">Assign User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const apiBaseUrl = '/api';
         const facilitiesMap = new Map();
         const usersMap = new Map();
+        let visitRequests = [];
+        let assignableUsers = [];
         
         // Load reference data (facilities and users)
         async function loadReferenceData() {
@@ -100,6 +155,9 @@
                     usersMap.set(user.userId, user.name);
                 });
                 
+                // Filter assignable users for the dropdown
+                assignableUsers = users.filter(user => user.isAssignable);
+                
                 // After reference data is loaded, load visit requests
                 await loadVisitRequests();
                 
@@ -117,7 +175,7 @@
                 const response = await fetch(`${apiBaseUrl}/visit-request`);
                 if (!response.ok) throw new Error('Failed to fetch visit requests');
                 
-                const visitRequests = await response.json();
+                visitRequests = await response.json();
                 const tableBody = document.getElementById('visitRequestsTable');
                 tableBody.innerHTML = '';
                 
@@ -146,7 +204,7 @@
                                 <td>${request.assignedUserId ? usersMap.get(request.assignedUserId) || 'Unknown' : '-'}</td>
                                 <td>
                                     <a href="visit-details.html?id=${request.requestId}" class="btn btn-sm btn-outline-primary">View</a>
-                                    ${request.active ? `<a href="assign-visit.html?id=${request.requestId}" class="btn btn-sm btn-outline-info ms-1">Assign</a>` : ''}
+                                    ${request.active ? `<button class="btn btn-sm btn-outline-info ms-1" onclick="openAssignModal('${request.requestId}')">Assign</button>` : ''}
                                     ${request.active ? `<button class="btn btn-sm btn-outline-success ms-1" onclick="markCompleted('${request.requestId}')">Complete</button>` : ''}
                                 </td>
                             </tr>
@@ -164,10 +222,81 @@
             }
         }
         
-        // View request details
-        function viewDetails(requestId) {
-            // Redirect to details page or show modal
-            alert(`View details for request ${requestId}`);
+        // Open assign modal
+        function openAssignModal(requestId) {
+            const request = visitRequests.find(r => r.requestId === requestId);
+            if (!request) return;
+            
+            // Populate modal with visit details
+            document.getElementById('assignRequestId').value = requestId;
+            document.getElementById('modalPatientName').textContent = `${request.patientFirstName} ${request.patientLastName}`;
+            document.getElementById('modalFacilityName').textContent = facilitiesMap.get(request.facilityId) || 'Unknown';
+            document.getElementById('modalRoomNumber').textContent = request.roomNumber;
+            document.getElementById('modalFloor').textContent = request.floor || '-';
+            
+            // Clear previous selection and error
+            document.getElementById('userSelect').value = '';
+            document.getElementById('modalErrorAlert').classList.add('d-none');
+            
+            // Populate user dropdown
+            const userSelect = document.getElementById('userSelect');
+            userSelect.innerHTML = '<option value="" selected disabled>Select a user</option>';
+            
+            if (assignableUsers.length === 0) {
+                userSelect.innerHTML += '<option value="" disabled>No assignable users available</option>';
+            } else {
+                assignableUsers.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.userId;
+                    option.textContent = user.name;
+                    userSelect.appendChild(option);
+                });
+            }
+            
+            // If already assigned, preselect the user
+            if (request.assignedUserId) {
+                userSelect.value = request.assignedUserId;
+            }
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('assignUserModal'));
+            modal.show();
+        }
+        
+        // Assign user to visit
+        async function assignUser() {
+            const requestId = document.getElementById('assignRequestId').value;
+            const assignedUserId = document.getElementById('userSelect').value;
+            
+            if (!assignedUserId) {
+                document.getElementById('modalErrorAlert').textContent = 'Please select a user to assign.';
+                document.getElementById('modalErrorAlert').classList.remove('d-none');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/visit-request/${requestId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        assignedUserId
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to assign user');
+                
+                // Close modal and reload data
+                const modal = bootstrap.Modal.getInstance(document.getElementById('assignUserModal'));
+                modal.hide();
+                loadReferenceData();
+                
+            } catch (error) {
+                console.error('Error assigning user:', error);
+                document.getElementById('modalErrorAlert').textContent = 'Error assigning user.';
+                document.getElementById('modalErrorAlert').classList.remove('d-none');
+            }
         }
         
         // Mark request as completed
@@ -197,9 +326,10 @@
             }
         }
         
-        // Load data when page loads
+        // Event listeners
         window.addEventListener('DOMContentLoaded', () => {
             loadReferenceData();
+            document.getElementById('assignUserBtn').addEventListener('click', assignUser);
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
