@@ -93,6 +93,27 @@ export class CareFacilityApiStack extends cdk.Stack {
       }],
     });
     
+    // Add resource for getting a single visit request by ID
+    const singleVisitRequestResource = visitRequestResource.addResource('{requestId}');
+    singleVisitRequestResource.addMethod('GET', new apigateway.LambdaIntegration(visitRequestLambda), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }],
+    });
+    
+    // Add PUT method for updating a visit request
+    singleVisitRequestResource.addMethod('PUT', new apigateway.LambdaIntegration(visitRequestLambda), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }],
+    });
+    
 
 
     // Lookup the hosted zone for nwgreens.org

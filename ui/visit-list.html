@@ -133,7 +133,7 @@
                                 <td>${requestDate}</td>
                                 <td><span class="badge ${statusClass}">${statusText}</span></td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="viewDetails('${request.requestId}')">View</button>
+                                    <a href="visit-details.html?id=${request.requestId}" class="btn btn-sm btn-outline-primary">View</a>
                                     ${request.active ? `<button class="btn btn-sm btn-outline-success ms-1" onclick="markCompleted('${request.requestId}')">Complete</button>` : ''}
                                 </td>
                             </tr>
