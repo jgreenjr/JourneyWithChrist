@@ -60,6 +60,17 @@ export class CareFacilityApiStack extends cdk.Stack {
 
     const careFacilityResource = api.root.addResource('care-facility');
     careFacilityResource.addMethod('ANY', new apigateway.LambdaIntegration(careFacilityLambda));
+    
+    // Add resource for getting a single care facility by ID
+    const singleCareFacilityResource = careFacilityResource.addResource('{facilityId}');
+    singleCareFacilityResource.addMethod('GET', new apigateway.LambdaIntegration(careFacilityLambda), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }],
+    });
 
     // DynamoDB table for visit requests
     const visitRequestTable = new dynamodb.Table(this, 'VisitRequestTable', {
