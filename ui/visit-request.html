@@ -58,10 +58,6 @@
                 <label for="notes" class="form-label">Notes</label>
                 <textarea class="form-control" id="notes" rows="3"></textarea>
             </div>
-            <div class="mb-3 form-check">
-                <input type="checkbox" class="form-check-input" id="followUpRequested">
-                <label class="form-check-label" for="followUpRequested">Follow-up Requested</label>
-            </div>
             <button type="submit" class="btn btn-primary">Submit Request</button>
             <a href="index.html" class="btn btn-secondary ms-2">Back to Home</a>
         </form>
@@ -111,7 +107,6 @@
             const roomNumber = document.getElementById('roomNumber').value;
             const floor = document.getElementById('floor').value;
             const notes = document.getElementById('notes').value;
-            const followUpRequested = document.getElementById('followUpRequested').checked;
             
             const visitRequest = {
                 patientFirstName,
@@ -121,7 +116,6 @@
                 roomNumber,
                 floor,
                 notes,
-                followUpRequested,
                 active: true
             };
             

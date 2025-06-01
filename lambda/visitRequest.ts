@@ -16,7 +16,7 @@ interface VisitRequest {
   facilityId: string;
   active: boolean;
   notes: string;
-  followUpRequested: boolean;
+  followUpRequested: boolean | null;
   visitedBy: string | null;
   assignedUserId: string | null;
   requestedAt: string;
@@ -70,7 +70,7 @@ const createVisitRequest = async (visitRequest: Partial<VisitRequest>) => {
     facilityId: visitRequest.facilityId,
     active: visitRequest.active !== undefined ? visitRequest.active : true,
     notes: visitRequest.notes || '',
-    followUpRequested: visitRequest.followUpRequested || false,
+    followUpRequested: visitRequest.followUpRequested || null,
     visitedBy: null,
     assignedUserId: visitRequest.assignedUserId || null,
     requestedAt: new Date().toISOString(),
