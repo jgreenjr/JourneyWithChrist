@@ -47,6 +47,7 @@
                         <th>Room</th>
                         <th>Requested At</th>
                         <th>Status</th>
+                        <th>Assigned To</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -76,9 +77,10 @@
     <script>
         const apiBaseUrl = '/api';
         const facilitiesMap = new Map();
+        const usersMap = new Map();
         
-        // Load facilities data
-        async function loadFacilities() {
+        // Load reference data (facilities and users)
+        async function loadReferenceData() {
             try {
                 // Load facilities
                 const facilitiesResponse = await fetch(`${apiBaseUrl}/care-facility`);
@@ -89,12 +91,21 @@
                     facilitiesMap.set(facility.facilityId, facility.buildingName);
                 });
                 
-                // After facilities are loaded, load visit requests
+                // Load users
+                const usersResponse = await fetch(`${apiBaseUrl}/user`);
+                if (!usersResponse.ok) throw new Error('Failed to fetch users');
+                const users = await usersResponse.json();
+                
+                users.forEach(user => {
+                    usersMap.set(user.userId, user.name);
+                });
+                
+                // After reference data is loaded, load visit requests
                 await loadVisitRequests();
                 
             } catch (error) {
-                console.error('Error loading facilities:', error);
-                document.getElementById('errorAlert').textContent = 'Failed to load facilities.';
+                console.error('Error loading reference data:', error);
+                document.getElementById('errorAlert').textContent = 'Failed to load reference data.';
                 document.getElementById('errorAlert').classList.remove('d-none');
                 document.getElementById('loadingMessage').classList.add('d-none');
             }
@@ -113,7 +124,7 @@
                 if (visitRequests.length === 0) {
                     tableBody.innerHTML = `
                         <tr>
-                            <td colspan="7" class="text-center">No visit requests found.</td>
+                            <td colspan="8" class="text-center">No visit requests found.</td>
                         </tr>
                     `;
                 } else {
@@ -132,8 +143,10 @@
                                 <td>${request.roomNumber}</td>
                                 <td>${requestDate}</td>
                                 <td><span class="badge ${statusClass}">${statusText}</span></td>
+                                <td>${request.assignedUserId ? usersMap.get(request.assignedUserId) || 'Unknown' : '-'}</td>
                                 <td>
                                     <a href="visit-details.html?id=${request.requestId}" class="btn btn-sm btn-outline-primary">View</a>
+                                    ${request.active ? `<a href="assign-visit.html?id=${request.requestId}" class="btn btn-sm btn-outline-info ms-1">Assign</a>` : ''}
                                     ${request.active ? `<button class="btn btn-sm btn-outline-success ms-1" onclick="markCompleted('${request.requestId}')">Complete</button>` : ''}
                                 </td>
                             </tr>
@@ -175,7 +188,7 @@
                 if (!response.ok) throw new Error('Failed to update visit request');
                 
                 // Reload the list
-                loadFacilities();
+                loadReferenceData();
                 
             } catch (error) {
                 console.error('Error updating visit request:', error);
@@ -186,7 +199,7 @@
         
         // Load data when page loads
         window.addEventListener('DOMContentLoaded', () => {
-            loadFacilities();
+            loadReferenceData();
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

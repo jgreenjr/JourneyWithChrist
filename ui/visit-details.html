@@ -98,6 +98,10 @@
                     <p class="detail-label">Visited By:</p>
                     <p id="visitedBy"></p>
                 </div>
+                <div class="col-md-6">
+                    <p class="detail-label">Assigned To:</p>
+                    <p id="assignedTo"></p>
+                </div>
             </div>
             
             <div class="row mb-3">
@@ -121,6 +125,7 @@
         
         <div class="mt-4">
             <button id="completeBtn" class="btn btn-success d-none">Mark as Completed</button>
+            <a id="assignBtn" href="#" class="btn btn-info d-none">Assign User</a>
             <a href="visit-list.html" class="btn btn-secondary">Back to List</a>
         </div>
     </div>
@@ -128,11 +133,27 @@
     <script>
         const apiBaseUrl = '/api';
         let requestId;
+        const usersMap = new Map();
         
         // Get request ID from URL
         function getRequestIdFromUrl() {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get('id');
+        }
+        
+        // Load users data
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/user`);
+                if (!response.ok) throw new Error('Failed to fetch users');
+                
+                const users = await response.json();
+                users.forEach(user => {
+                    usersMap.set(user.userId, user.name);
+                });
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
         }
         
         // Load visit request details
@@ -179,11 +200,19 @@
                 document.getElementById('requestedAt').textContent = new Date(request.requestedAt).toLocaleString();
                 document.getElementById('visitedAt').textContent = request.visitedAt ? new Date(request.visitedAt).toLocaleString() : '-';
                 document.getElementById('visitedBy').textContent = request.visitedBy || '-';
+                document.getElementById('assignedTo').textContent = request.assignedUserId ? usersMap.get(request.assignedUserId) || 'Unknown' : '-';
                 document.getElementById('notes').textContent = request.notes || '-';
                 
-                // Show complete button if active
+                // Show action buttons if active
                 if (request.active) {
                     document.getElementById('completeBtn').classList.remove('d-none');
+                    
+                    // Show assign button if not already assigned
+                    if (!request.assignedUserId) {
+                        const assignBtn = document.getElementById('assignBtn');
+                        assignBtn.href = `assign-visit.html?id=${requestId}`;
+                        assignBtn.classList.remove('d-none');
+                    }
                 }
                 
                 document.getElementById('loadingMessage').classList.add('d-none');
@@ -225,8 +254,9 @@
         }
         
         // Event listeners
-        window.addEventListener('DOMContentLoaded', () => {
-            loadVisitRequestDetails();
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadUsers();
+            await loadVisitRequestDetails();
             document.getElementById('completeBtn').addEventListener('click', markCompleted);
         });
     </script>
