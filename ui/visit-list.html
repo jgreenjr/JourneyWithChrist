@@ -205,7 +205,8 @@
                                 <td>
                                     <a href="visit-details.html?id=${request.requestId}" class="btn btn-sm btn-outline-primary">View</a>
                                     ${request.active ? `<button class="btn btn-sm btn-outline-info ms-1" onclick="openAssignModal('${request.requestId}')">Assign</button>` : ''}
-                                    ${request.active ? `<button class="btn btn-sm btn-outline-success ms-1" onclick="markCompleted('${request.requestId}')">Complete</button>` : ''}
+                                    ${request.active ? `<button class="btn btn-sm btn-outline-success ms-1" onclick="markCompleted('${request.requestId}')">Complete</button>` : 
+                                    `<button class="btn btn-sm btn-outline-warning ms-1" onclick="reopenVisit('${request.requestId}')">Reopen</button>`}
                                 </td>
                             </tr>
                         `;
@@ -322,6 +323,33 @@
             } catch (error) {
                 console.error('Error updating visit request:', error);
                 document.getElementById('errorAlert').textContent = 'Failed to update visit request.';
+                document.getElementById('errorAlert').classList.remove('d-none');
+            }
+        }
+        
+        // Reopen a completed visit
+        async function reopenVisit(requestId) {
+            try {
+                const response = await fetch(`${apiBaseUrl}/visit-request/${requestId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        active: true,
+                        visitedAt: null,
+                        visitedBy: null
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to reopen visit request');
+                
+                // Reload the list
+                loadReferenceData();
+                
+            } catch (error) {
+                console.error('Error reopening visit request:', error);
+                document.getElementById('errorAlert').textContent = 'Failed to reopen visit request.';
                 document.getElementById('errorAlert').classList.remove('d-none');
             }
         }
