@@ -77,6 +77,12 @@ export class CareFacilityApiStack extends cdk.Stack {
       partitionKey: { name: 'requestId', type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
     });
+    
+    // DynamoDB table for users
+    const userTable = new dynamodb.Table(this, 'UserTable', {
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
+    });
 
     // Visit Request Lambda function
     const visitRequestLambda = new lambda.Function(this, 'VisitRequestHandler', {
@@ -90,9 +96,25 @@ export class CareFacilityApiStack extends cdk.Stack {
 
     // Grant permissions to the Visit Request Lambda
     visitRequestTable.grantReadWriteData(visitRequestLambda);
+    
+    // User Lambda function
+    const userLambda = new lambda.Function(this, 'UserHandler', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      code: lambda.Code.fromAsset('lambda'),
+      handler: 'user.handler',
+      environment: {
+        USER_TABLE_NAME: userTable.tableName,
+      },
+    });
+
+    // Grant permissions to the User Lambda
+    userTable.grantReadWriteData(userLambda);
 
     // API Gateway for Visit Request - adding to the main API
     const visitRequestResource = api.root.addResource('visit-request');
+    
+    // API Gateway for User - adding to the main API
+    const userResource = api.root.addResource('user');
     
     // Add ANY method for visit request API calls
     visitRequestResource.addMethod('ANY', new apigateway.LambdaIntegration(visitRequestLambda), {
@@ -117,6 +139,47 @@ export class CareFacilityApiStack extends cdk.Stack {
     
     // Add PUT method for updating a visit request
     singleVisitRequestResource.addMethod('PUT', new apigateway.LambdaIntegration(visitRequestLambda), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }],
+    });
+    
+    // Add ANY method for user API calls
+    userResource.addMethod('ANY', new apigateway.LambdaIntegration(userLambda), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }],
+    });
+    
+    // Add resource for getting a single user by ID
+    const singleUserResource = userResource.addResource('{userId}');
+    singleUserResource.addMethod('GET', new apigateway.LambdaIntegration(userLambda), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }],
+    });
+    
+    // Add PUT method for updating a user
+    singleUserResource.addMethod('PUT', new apigateway.LambdaIntegration(userLambda), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }],
+    });
+    
+    // Add DELETE method for deleting a user
+    singleUserResource.addMethod('DELETE', new apigateway.LambdaIntegration(userLambda), {
       methodResponses: [{
         statusCode: '200',
         responseParameters: {
