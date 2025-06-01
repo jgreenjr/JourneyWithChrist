@@ -10,6 +10,7 @@ import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53targets from 'aws-cdk-lib/aws-route53-targets';
 import * as certificatemanager from 'aws-cdk-lib/aws-certificatemanager';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 
 export class CareFacilityApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -90,6 +91,43 @@ export class CareFacilityApiStack extends cdk.Stack {
       partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
     });
+    
+    // Cognito User Pool
+    const userPool = new cognito.UserPool(this, 'UserPool', {
+      selfSignUpEnabled: false,
+      autoVerify: { email: true },
+      standardAttributes: {
+        email: { required: true, mutable: true },
+        givenName: { required: true, mutable: true },
+        familyName: { required: true, mutable: true },
+        phoneNumber: { required: false, mutable: true }
+      },
+      passwordPolicy: {
+        minLength: 8,
+        requireLowercase: true,
+        requireUppercase: true,
+        requireDigits: true,
+        requireSymbols: false
+      },
+      accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
+      removalPolicy: cdk.RemovalPolicy.DESTROY
+    });
+    
+    // User Pool Client
+    const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
+      userPool,
+      authFlows: {
+        userPassword: true,
+        userSrp: true
+      }
+    });
+    
+    // Cognito Domain
+    const userPoolDomain = userPool.addDomain('CognitoDomain', {
+      cognitoDomain: {
+        domainPrefix: 'journey-with-christ'
+      }
+    });
 
     // Visit Request Lambda function
     const visitRequestLambda = new lambda.Function(this, 'VisitRequestHandler', {
@@ -111,11 +149,20 @@ export class CareFacilityApiStack extends cdk.Stack {
       handler: 'user.handler',
       environment: {
         USER_TABLE_NAME: userTable.tableName,
+        USER_POOL_ID: userPool.userPoolId,
+        USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId
       },
     });
 
     // Grant permissions to the User Lambda
     userTable.grantReadWriteData(userLambda);
+    
+    // Grant permissions to the User Lambda to manage Cognito users
+    userPool.grant(userLambda, 
+      'cognito-idp:AdminCreateUser',
+      'cognito-idp:AdminDeleteUser',
+      'cognito-idp:AdminUpdateUserAttributes'
+    );
 
     // API Gateway for Visit Request - adding to the main API
     const visitRequestResource = api.root.addResource('visit-request');
@@ -317,6 +364,22 @@ export class CareFacilityApiStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'CloudFrontVisitAPIUrl', {
       value: `https://${distribution.distributionDomainName}/api/visit-request`,
       description: 'The URL of the Visit Request API through CloudFront',
+    });
+    
+    // Output Cognito information
+    new cdk.CfnOutput(this, 'UserPoolId', {
+      value: userPool.userPoolId,
+      description: 'The ID of the Cognito User Pool',
+    });
+    
+    new cdk.CfnOutput(this, 'UserPoolClientId', {
+      value: userPoolClient.userPoolClientId,
+      description: 'The ID of the Cognito User Pool Client',
+    });
+    
+    new cdk.CfnOutput(this, 'CognitoDomain', {
+      value: userPoolDomain.domainName,
+      description: 'The Cognito domain name',
     });
   }
 }
