@@ -86,7 +86,8 @@
                         </div>
                         <div class="mb-3">
                             <label for="phoneNumber" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="phoneNumber">
+                            <input type="tel" class="form-control" id="phoneNumber" pattern="^\+[0-9]{11,15}$" title="Phone number format: +12345678901">
+                            <div class="form-text">Format: +12345678901 (country code followed by number)</div>
                         </div>
                         <div class="mb-3 form-check">
                             <input type="checkbox" class="form-check-input" id="isAssignable" checked>
@@ -130,7 +131,8 @@
                         </div>
                         <div class="mb-3">
                             <label for="editPhoneNumber" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="editPhoneNumber">
+                            <input type="tel" class="form-control" id="editPhoneNumber" pattern="^\+[0-9]{11,15}$" title="Phone number format: +12345678901">
+                            <div class="form-text">Format: +12345678901 (country code followed by number)</div>
                         </div>
                         <div class="mb-3 form-check">
                             <input type="checkbox" class="form-check-input" id="editIsAssignable">
@@ -215,6 +217,13 @@
                 return;
             }
             
+            // Validate phone number format if provided
+            if (phoneNumber && !phoneNumber.match(/^\+[0-9]{11,15}$/)) {
+                document.getElementById('modalErrorAlert').textContent = 'Phone number must be in format: +12345678901';
+                document.getElementById('modalErrorAlert').classList.remove('d-none');
+                return;
+            }
+            
             try {
                 const response = await fetch(`${apiBaseUrl}/user`, {
                     method: 'POST',
@@ -273,6 +282,13 @@
             
             if (!name || !email) {
                 document.getElementById('editModalErrorAlert').textContent = 'Name and email are required.';
+                document.getElementById('editModalErrorAlert').classList.remove('d-none');
+                return;
+            }
+            
+            // Validate phone number format if provided
+            if (phoneNumber && !phoneNumber.match(/^\+[0-9]{11,15}$/)) {
+                document.getElementById('editModalErrorAlert').textContent = 'Phone number must be in format: +12345678901';
                 document.getElementById('editModalErrorAlert').classList.remove('d-none');
                 return;
             }
