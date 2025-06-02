@@ -29,6 +29,8 @@
             background-color: #dc3545;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
+    <script src="js/auth.js"></script>
 </head>
 <body>
     <div class="container">
@@ -355,7 +357,7 @@
                     body: JSON.stringify({
                         active: false,
                         visitedAt: new Date().toISOString(),
-                        visitedBy: 'Current User', // In a real app, get this from authentication
+                        visitedBy: username,
                         notes: updatedNotes,
                         followUpRequested: followUpNeeded
                     })
