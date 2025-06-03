@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Care Facility Management</title>
+    <title>Care Facilities</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -27,7 +27,7 @@
 <body>
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Care Facility Management</h1>
+            <h1>Care Facilities</h1>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFacilityModal">Add New Facility</button>
         </div>
         
@@ -35,11 +35,9 @@
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Building Name</th>
+                        <th>Name</th>
                         <th>Address</th>
-                        <th>Primary Contact</th>
-                        <th>Contact Phone</th>
+                        <th>Phone</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -71,26 +69,23 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addFacilityModalLabel">Add New Care Facility</h5>
+                    <h5 class="modal-title" id="addFacilityModalLabel">Add New Facility</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="addFacilityForm">
                         <div class="mb-3">
-                            <label for="buildingName" class="form-label">Building Name</label>
-                            <input type="text" class="form-control" id="buildingName" required>
+                            <label for="name" class="form-label">Facility Name</label>
+                            <input type="text" class="form-control" id="name" required>
                         </div>
                         <div class="mb-3">
                             <label for="address" class="form-label">Address</label>
                             <input type="text" class="form-control" id="address" required>
                         </div>
                         <div class="mb-3">
-                            <label for="primaryContactName" class="form-label">Primary Contact Name</label>
-                            <input type="text" class="form-control" id="primaryContactName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="primaryContactPhone" class="form-label">Primary Contact Phone</label>
-                            <input type="tel" class="form-control" id="primaryContactPhone" required>
+                            <label for="phoneNumber" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phoneNumber" pattern="^\+[0-9]{11,15}$" title="Phone number format: +12345678901">
+                            <div class="form-text">Format: +12345678901 (country code followed by number)</div>
                         </div>
                     </form>
                     <div id="modalErrorAlert" class="alert alert-danger d-none mt-3" role="alert">
@@ -105,36 +100,71 @@
         </div>
     </div>
 
+    <!-- Edit Facility Modal -->
+    <div class="modal fade" id="editFacilityModal" tabindex="-1" aria-labelledby="editFacilityModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editFacilityModalLabel">Edit Facility</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editFacilityForm">
+                        <input type="hidden" id="editFacilityId">
+                        <div class="mb-3">
+                            <label for="editName" class="form-label">Facility Name</label>
+                            <input type="text" class="form-control" id="editName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editAddress" class="form-label">Address</label>
+                            <input type="text" class="form-control" id="editAddress" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editPhoneNumber" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="editPhoneNumber" pattern="^\+[0-9]{11,15}$" title="Phone number format: +12345678901">
+                            <div class="form-text">Format: +12345678901 (country code followed by number)</div>
+                        </div>
+                    </form>
+                    <div id="editModalErrorAlert" class="alert alert-danger d-none mt-3" role="alert">
+                        Error updating facility.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="updateFacilityBtn">Update Facility</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
     <script>
-        const apiBaseUrl = '/api';
+        let facilities = [];
         
         // Load facilities
         async function loadFacilities() {
             try {
-                const response = await fetch(`${apiBaseUrl}/care-facility`);
-                if (!response.ok) throw new Error('Failed to fetch facilities');
-                
-                const facilities = await response.json();
+                facilities = await facilityApi.getAll();
                 const tableBody = document.getElementById('facilitiesTable');
                 tableBody.innerHTML = '';
                 
                 if (facilities.length === 0) {
                     tableBody.innerHTML = `
                         <tr>
-                            <td colspan="6" class="text-center">No facilities found.</td>
+                            <td colspan="4" class="text-center">No facilities found.</td>
                         </tr>
                     `;
                 } else {
                     facilities.forEach(facility => {
                         tableBody.innerHTML += `
                             <tr>
-                                <td>${facility.facilityId}</td>
-                                <td>${facility.buildingName}</td>
-                                <td>${facility.address}</td>
-                                <td>${facility.primaryContactName}</td>
-                                <td>${facility.primaryContactPhone}</td>
+                                <td>${facility.name}</td>
+                                <td>${facility.address || '-'}</td>
+                                <td>${facility.phoneNumber || '-'}</td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="viewFacility('${facility.facilityId}')">View</button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editFacility('${facility.facilityId}')">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteFacility('${facility.facilityId}')">Delete</button>
                                 </td>
                             </tr>
                         `;
@@ -151,45 +181,37 @@
             }
         }
         
-        // View facility details
-        function viewFacility(facilityId) {
-            // Redirect to details page or show modal
-            alert(`View details for facility ${facilityId}`);
-        }
-        
         // Save new facility
         async function saveFacility() {
-            const buildingName = document.getElementById('buildingName').value;
+            const name = document.getElementById('name').value;
             const address = document.getElementById('address').value;
-            const primaryContactName = document.getElementById('primaryContactName').value;
-            const primaryContactPhone = document.getElementById('primaryContactPhone').value;
+            const phoneNumber = document.getElementById('phoneNumber').value;
             
-            if (!buildingName || !address || !primaryContactName || !primaryContactPhone) {
-                document.getElementById('modalErrorAlert').textContent = 'All fields are required.';
+            if (!name) {
+                document.getElementById('modalErrorAlert').textContent = 'Facility name is required.';
+                document.getElementById('modalErrorAlert').classList.remove('d-none');
+                return;
+            }
+            
+            // Validate phone number format if provided
+            if (phoneNumber && !phoneNumber.match(/^\+[0-9]{11,15}$/)) {
+                document.getElementById('modalErrorAlert').textContent = 'Phone number must be in format: +12345678901';
                 document.getElementById('modalErrorAlert').classList.remove('d-none');
                 return;
             }
             
             try {
-                const response = await fetch(`${apiBaseUrl}/care-facility`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        buildingName,
-                        address,
-                        primaryContactName,
-                        primaryContactPhone
-                    })
+                await facilityApi.create({
+                    name,
+                    address,
+                    phoneNumber
                 });
-                
-                if (!response.ok) throw new Error('Failed to create facility');
                 
                 // Close modal and reload facilities
                 const modal = bootstrap.Modal.getInstance(document.getElementById('addFacilityModal'));
                 modal.hide();
                 document.getElementById('addFacilityForm').reset();
+                document.getElementById('modalErrorAlert').classList.add('d-none');
                 loadFacilities();
                 
             } catch (error) {
@@ -199,10 +221,79 @@
             }
         }
         
+        // Edit facility
+        function editFacility(facilityId) {
+            const facility = facilities.find(f => f.facilityId === facilityId);
+            if (!facility) return;
+            
+            document.getElementById('editFacilityId').value = facility.facilityId;
+            document.getElementById('editName').value = facility.name;
+            document.getElementById('editAddress').value = facility.address || '';
+            document.getElementById('editPhoneNumber').value = facility.phoneNumber || '';
+            
+            const editModal = new bootstrap.Modal(document.getElementById('editFacilityModal'));
+            editModal.show();
+        }
+        
+        // Update facility
+        async function updateFacility() {
+            const facilityId = document.getElementById('editFacilityId').value;
+            const name = document.getElementById('editName').value;
+            const address = document.getElementById('editAddress').value;
+            const phoneNumber = document.getElementById('editPhoneNumber').value;
+            
+            if (!name) {
+                document.getElementById('editModalErrorAlert').textContent = 'Facility name is required.';
+                document.getElementById('editModalErrorAlert').classList.remove('d-none');
+                return;
+            }
+            
+            // Validate phone number format if provided
+            if (phoneNumber && !phoneNumber.match(/^\+[0-9]{11,15}$/)) {
+                document.getElementById('editModalErrorAlert').textContent = 'Phone number must be in format: +12345678901';
+                document.getElementById('editModalErrorAlert').classList.remove('d-none');
+                return;
+            }
+            
+            try {
+                await facilityApi.update(facilityId, {
+                    name,
+                    address,
+                    phoneNumber
+                });
+                
+                // Close modal and reload facilities
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editFacilityModal'));
+                modal.hide();
+                document.getElementById('editModalErrorAlert').classList.add('d-none');
+                loadFacilities();
+                
+            } catch (error) {
+                console.error('Error updating facility:', error);
+                document.getElementById('editModalErrorAlert').textContent = 'Error updating facility.';
+                document.getElementById('editModalErrorAlert').classList.remove('d-none');
+            }
+        }
+        
+        // Delete facility
+        async function deleteFacility(facilityId) {
+            if (!confirm('Are you sure you want to delete this facility?')) return;
+            
+            try {
+                await facilityApi.delete(facilityId);
+                loadFacilities();
+            } catch (error) {
+                console.error('Error deleting facility:', error);
+                document.getElementById('errorAlert').textContent = 'Failed to delete facility.';
+                document.getElementById('errorAlert').classList.remove('d-none');
+            }
+        }
+        
         // Event listeners
         window.addEventListener('DOMContentLoaded', () => {
             loadFacilities();
             document.getElementById('saveFacilityBtn').addEventListener('click', saveFacility);
+            document.getElementById('updateFacilityBtn').addEventListener('click', updateFacility);
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

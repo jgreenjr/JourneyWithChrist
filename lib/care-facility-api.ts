@@ -339,15 +339,8 @@ export class CareFacilityApiStack extends cdk.Stack {
     
     // We'll use a built-in policy instead of a custom one
     
-    // Create a custom origin request policy that forwards the Authorization header
-    const apiOriginRequestPolicy = new cloudfront.OriginRequestPolicy(this, 'ApiOriginRequestPolicy', {
-      originRequestPolicyName: 'ApiGatewayAuthPolicy',
-      headerBehavior: cloudfront.OriginRequestHeaderBehavior.allowList(
-        'Authorization'
-      ),
-      cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
-      queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.all()
-    });
+    // Use the managed cache policy that allows all headers
+    const apiCachePolicy = cloudfront.CachePolicy.CACHING_DISABLED;
     
     // Add a behavior for the main API Gateway
     distribution.addBehavior('/api/*', new origins.HttpOrigin(`${api.restApiId}.execute-api.${this.region}.amazonaws.com`, {
@@ -359,8 +352,8 @@ export class CareFacilityApiStack extends cdk.Stack {
     }), {
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
-      cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
-      originRequestPolicy: apiOriginRequestPolicy,
+      cachePolicy: apiCachePolicy,
+      originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
       functionAssociations: [{
         function: pathRewriteFunction,
         eventType: cloudfront.FunctionEventType.VIEWER_REQUEST

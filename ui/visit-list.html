@@ -11,7 +11,7 @@
             background-color: #f8f9fa;
         }
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             background-color: white;
             padding: 30px;
             border-radius: 10px;
@@ -22,15 +22,16 @@
             margin-bottom: 30px;
             color: #0d6efd;
         }
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+        }
         .badge-active {
             background-color: #198754;
         }
         .badge-inactive {
-            background-color: #dc3545;
+            background-color: #6c757d;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
-    <script src="js/auth.js"></script>
 </head>
 <body>
     <div class="container">
@@ -39,35 +40,135 @@
             <a href="visit-request.html" class="btn btn-primary">Create New Request</a>
         </div>
         
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>Patient</th>
-                        <th>Phone</th>
-                        <th>Facility</th>
-                        <th>Room</th>
-                        <th>Requested At</th>
-                        <th>Status</th>
-                        <th>Assigned To</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="visitRequestsTable">
-                    <!-- Visit requests will be loaded here -->
-                </tbody>
-            </table>
-        </div>
+        <ul class="nav nav-pills mb-4" id="visitTabs">
+            <li class="nav-item">
+                <a class="nav-link active" id="active-tab" data-bs-toggle="pill" href="#active" role="tab">Active Requests</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="completed-tab" data-bs-toggle="pill" href="#completed" role="tab">Completed Requests</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="my-tab" data-bs-toggle="pill" href="#my" role="tab">My Requests</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="unassigned-tab" data-bs-toggle="pill" href="#unassigned" role="tab">Unassigned</a>
+            </li>
+        </ul>
         
-        <div class="mt-3">
-            <div id="loadingMessage" class="text-center">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="active" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Patient</th>
+                                <th>Room</th>
+                                <th>Facility</th>
+                                <th>Requested</th>
+                                <th>Assigned To</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activeRequestsTable">
+                            <!-- Active requests will be loaded here -->
+                        </tbody>
+                    </table>
                 </div>
-                <p>Loading visit requests...</p>
+                <div id="activeLoadingMessage" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading active requests...</p>
+                </div>
+                <div id="activeErrorAlert" class="alert alert-danger d-none" role="alert">
+                    Error loading active requests.
+                </div>
             </div>
-            <div id="errorAlert" class="alert alert-danger d-none" role="alert">
-                Error loading visit requests.
+            
+            <div class="tab-pane fade" id="completed" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Patient</th>
+                                <th>Room</th>
+                                <th>Facility</th>
+                                <th>Completed</th>
+                                <th>Visited By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="completedRequestsTable">
+                            <!-- Completed requests will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="completedLoadingMessage" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading completed requests...</p>
+                </div>
+                <div id="completedErrorAlert" class="alert alert-danger d-none" role="alert">
+                    Error loading completed requests.
+                </div>
+            </div>
+            
+            <div class="tab-pane fade" id="my" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Patient</th>
+                                <th>Room</th>
+                                <th>Facility</th>
+                                <th>Requested</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="myRequestsTable">
+                            <!-- My requests will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="myLoadingMessage" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading your assigned requests...</p>
+                </div>
+                <div id="myErrorAlert" class="alert alert-danger d-none" role="alert">
+                    Error loading your assigned requests.
+                </div>
+            </div>
+            
+            <div class="tab-pane fade" id="unassigned" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Patient</th>
+                                <th>Room</th>
+                                <th>Facility</th>
+                                <th>Requested</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unassignedRequestsTable">
+                            <!-- Unassigned requests will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="unassignedLoadingMessage" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading unassigned requests...</p>
+                </div>
+                <div id="unassignedErrorAlert" class="alert alert-danger d-none" role="alert">
+                    Error loading unassigned requests.
+                </div>
             </div>
         </div>
         
@@ -76,375 +177,372 @@
         </div>
     </div>
 
-    <!-- Assign User Modal -->
-    <div class="modal fade" id="assignUserModal" tabindex="-1" aria-labelledby="assignUserModalLabel" aria-hidden="true">
+    <!-- View Request Modal -->
+    <div class="modal fade" id="viewRequestModal" tabindex="-1" aria-labelledby="viewRequestModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="assignUserModalLabel">Assign Visit Request</h5>
+                    <h5 class="modal-title" id="viewRequestModalLabel">Visit Request Details</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="visitDetailsModal" class="mb-4">
-                        <div class="row mb-2">
-                            <div class="col-md-6">
-                                <p class="fw-bold mb-0">Patient:</p>
-                                <p id="modalPatientName"></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="fw-bold mb-0">Facility:</p>
-                                <p id="modalFacilityName"></p>
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6">
-                                <p class="fw-bold mb-0">Room:</p>
-                                <p id="modalRoomNumber"></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="fw-bold mb-0">Floor:</p>
-                                <p id="modalFloor"></p>
-                            </div>
-                        </div>
+                    <div class="mb-3">
+                        <h6>Patient</h6>
+                        <p id="viewPatientName"></p>
                     </div>
-                    
-                    <form id="assignForm">
-                        <input type="hidden" id="assignRequestId">
-                        <div class="mb-3">
-                            <label for="userSelect" class="form-label">Assign to User:</label>
-                            <select class="form-select" id="userSelect" required>
-                                <option value="" selected disabled>Select a user</option>
-                            </select>
-                        </div>
-                    </form>
-                    <div id="modalErrorAlert" class="alert alert-danger d-none mt-3" role="alert">
-                        Error assigning user.
+                    <div class="mb-3">
+                        <h6>Room</h6>
+                        <p id="viewRoom"></p>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Facility</h6>
+                        <p id="viewFacility"></p>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Requested</h6>
+                        <p id="viewRequestedAt"></p>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Status</h6>
+                        <p id="viewStatus"></p>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Assigned To</h6>
+                        <p id="viewAssignedTo"></p>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Notes</h6>
+                        <p id="viewNotes"></p>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="assignUserBtn">Assign User</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Complete Visit Modal -->
-    <div class="modal fade" id="completeVisitModal" tabindex="-1" aria-labelledby="completeVisitModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="completeVisitModalLabel">Complete Visit</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="completeVisitDetailsModal" class="mb-4">
-                        <div class="row mb-2">
-                            <div class="col-md-6">
-                                <p class="fw-bold mb-0">Patient:</p>
-                                <p id="completeModalPatientName"></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="fw-bold mb-0">Facility:</p>
-                                <p id="completeModalFacilityName"></p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <form id="completeForm">
-                        <input type="hidden" id="completeRequestId">
-                        <div class="mb-3">
-                            <label for="visitNotes" class="form-label">Visit Notes:</label>
-                            <textarea class="form-control" id="visitNotes" rows="4" placeholder="Enter notes about the visit"></textarea>
-                        </div>
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="followUpNeeded">
-                            <label class="form-check-label" for="followUpNeeded">Follow-up Required</label>
-                        </div>
-                    </form>
-                    <div id="completeModalErrorAlert" class="alert alert-danger d-none mt-3" role="alert">
-                        Error completing visit.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="confirmCompleteBtn">Complete Visit</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" id="completeRequestBtn">Mark as Completed</button>
+                    <button type="button" class="btn btn-primary" id="assignToMeBtn">Assign to Me</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
     <script>
-        const apiBaseUrl = '/api';
-        const facilitiesMap = new Map();
-        const usersMap = new Map();
-        let visitRequests = [];
-        let assignableUsers = [];
+        let facilities = [];
+        let users = [];
+        let currentUserId = null;
+        let currentRequest = null;
         
-        // Load reference data (facilities and users)
-        async function loadReferenceData() {
+        // Format date
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+        
+        // Load facilities
+        async function loadFacilities() {
             try {
-                // Load facilities
-                const facilitiesResponse = await fetch(`${apiBaseUrl}/care-facility`);
-                if (!facilitiesResponse.ok) throw new Error('Failed to fetch facilities');
-                const facilities = await facilitiesResponse.json();
-                
-                facilities.forEach(facility => {
-                    facilitiesMap.set(facility.facilityId, facility.buildingName);
-                });
-                
-                // Load users
-                const usersResponse = await fetch(`${apiBaseUrl}/user`);
-                if (!usersResponse.ok) throw new Error('Failed to fetch users');
-                const users = await usersResponse.json();
-                
-                users.forEach(user => {
-                    usersMap.set(user.userId, user.name);
-                });
-                
-                // Filter assignable users for the dropdown
-                assignableUsers = users.filter(user => user.isAssignable);
-                
-                // After reference data is loaded, load visit requests
-                await loadVisitRequests();
-                
+                facilities = await facilityApi.getAll();
             } catch (error) {
-                console.error('Error loading reference data:', error);
-                document.getElementById('errorAlert').textContent = 'Failed to load reference data.';
-                document.getElementById('errorAlert').classList.remove('d-none');
-                document.getElementById('loadingMessage').classList.add('d-none');
+                console.error('Error loading facilities:', error);
             }
         }
         
-        // Load visit requests
-        async function loadVisitRequests() {
+        // Load users
+        async function loadUsers() {
             try {
-                const response = await fetch(`${apiBaseUrl}/visit-request`);
-                if (!response.ok) throw new Error('Failed to fetch visit requests');
+                users = await userApi.getAll();
                 
-                visitRequests = await response.json();
-                const tableBody = document.getElementById('visitRequestsTable');
+                // Get current user ID (in a real app, this would come from the authentication system)
+                // For now, we'll just use the first user in the list
+                if (users.length > 0) {
+                    currentUserId = users[0].userId;
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+        
+        // Get facility name
+        function getFacilityName(facilityId) {
+            const facility = facilities.find(f => f.facilityId === facilityId);
+            return facility ? facility.name : 'Unknown Facility';
+        }
+        
+        // Get user name
+        function getUserName(userId) {
+            if (!userId) return 'Unassigned';
+            const user = users.find(u => u.userId === userId);
+            return user ? user.name : 'Unknown User';
+        }
+        
+        // Load active requests
+        async function loadActiveRequests() {
+            try {
+                const requests = await visitRequestApi.getAll();
+                const activeRequests = requests.filter(r => r.active);
+                const tableBody = document.getElementById('activeRequestsTable');
                 tableBody.innerHTML = '';
                 
-                if (visitRequests.length === 0) {
+                if (activeRequests.length === 0) {
                     tableBody.innerHTML = `
                         <tr>
-                            <td colspan="8" class="text-center">No visit requests found.</td>
+                            <td colspan="6" class="text-center">No active requests found.</td>
                         </tr>
                     `;
                 } else {
-                    visitRequests.forEach(request => {
-                        const patientName = `${request.patientFirstName} ${request.patientLastName}`;
-                        const facilityName = facilitiesMap.get(request.facilityId) || 'Unknown';
-                        const requestDate = new Date(request.requestedAt).toLocaleString();
-                        const statusClass = request.active ? 'badge-active' : 'badge-inactive';
-                        const statusText = request.active ? 'Active' : 'Completed';
-                        
+                    activeRequests.forEach(request => {
                         tableBody.innerHTML += `
                             <tr>
-                                <td>${patientName}</td>
-                                <td>${request.patientPhoneNumber || '-'}</td>
-                                <td>${facilityName}</td>
-                                <td>${request.roomNumber}</td>
-                                <td>${requestDate}</td>
-                                <td><span class="badge ${statusClass}">${statusText}</span></td>
-                                <td>${request.assignedUserId ? usersMap.get(request.assignedUserId) || 'Unknown' : '-'}</td>
+                                <td>${request.patientFirstName} ${request.patientLastName}</td>
+                                <td>${request.roomNumber} ${request.floor ? `(Floor ${request.floor})` : ''}</td>
+                                <td>${getFacilityName(request.facilityId)}</td>
+                                <td>${formatDate(request.requestedAt)}</td>
+                                <td>${getUserName(request.assignedUserId)}</td>
                                 <td>
-                                    <a href="visit-details.html?id=${request.requestId}" class="btn btn-sm btn-outline-primary">View</a>
-                                    ${request.active ? `<button class="btn btn-sm btn-outline-info ms-1" onclick="openAssignModal('${request.requestId}')">Assign</button>` : ''}
-                                    ${request.active ? `<button class="btn btn-sm btn-outline-success ms-1" onclick="openCompleteModal('${request.requestId}')">Complete</button>` : 
-                                    `<button class="btn btn-sm btn-outline-warning ms-1" onclick="reopenVisit('${request.requestId}')">Reopen</button>`}
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequest('${request.requestId}')">View</button>
                                 </td>
                             </tr>
                         `;
                     });
                 }
                 
-                document.getElementById('loadingMessage').classList.add('d-none');
+                document.getElementById('activeLoadingMessage').classList.add('d-none');
                 
             } catch (error) {
-                console.error('Error loading visit requests:', error);
-                document.getElementById('errorAlert').textContent = 'Failed to load visit requests.';
-                document.getElementById('errorAlert').classList.remove('d-none');
-                document.getElementById('loadingMessage').classList.add('d-none');
+                console.error('Error loading active requests:', error);
+                document.getElementById('activeErrorAlert').textContent = 'Failed to load active requests.';
+                document.getElementById('activeErrorAlert').classList.remove('d-none');
+                document.getElementById('activeLoadingMessage').classList.add('d-none');
             }
         }
         
-        // Open assign modal
-        function openAssignModal(requestId) {
-            const request = visitRequests.find(r => r.requestId === requestId);
-            if (!request) return;
-            
-            // Populate modal with visit details
-            document.getElementById('assignRequestId').value = requestId;
-            document.getElementById('modalPatientName').textContent = `${request.patientFirstName} ${request.patientLastName}`;
-            document.getElementById('modalFacilityName').textContent = facilitiesMap.get(request.facilityId) || 'Unknown';
-            document.getElementById('modalRoomNumber').textContent = request.roomNumber;
-            document.getElementById('modalFloor').textContent = request.floor || '-';
-            
-            // Clear previous selection and error
-            document.getElementById('userSelect').value = '';
-            document.getElementById('modalErrorAlert').classList.add('d-none');
-            
-            // Populate user dropdown
-            const userSelect = document.getElementById('userSelect');
-            userSelect.innerHTML = '<option value="" selected disabled>Select a user</option>';
-            
-            if (assignableUsers.length === 0) {
-                userSelect.innerHTML += '<option value="" disabled>No assignable users available</option>';
-            } else {
-                assignableUsers.forEach(user => {
-                    const option = document.createElement('option');
-                    option.value = user.userId;
-                    option.textContent = user.name;
-                    userSelect.appendChild(option);
-                });
-            }
-            
-            // If already assigned, preselect the user
-            if (request.assignedUserId) {
-                userSelect.value = request.assignedUserId;
-            }
-            
-            // Show the modal
-            const modal = new bootstrap.Modal(document.getElementById('assignUserModal'));
-            modal.show();
-        }
-        
-        // Open complete modal
-        function openCompleteModal(requestId) {
-            const request = visitRequests.find(r => r.requestId === requestId);
-            if (!request) return;
-            
-            // Populate modal with visit details
-            document.getElementById('completeRequestId').value = requestId;
-            document.getElementById('completeModalPatientName').textContent = `${request.patientFirstName} ${request.patientLastName}`;
-            document.getElementById('completeModalFacilityName').textContent = facilitiesMap.get(request.facilityId) || 'Unknown';
-            
-            // Clear previous inputs and error
-            document.getElementById('visitNotes').value = '';
-            document.getElementById('followUpNeeded').checked = false;
-            document.getElementById('completeModalErrorAlert').classList.add('d-none');
-            
-            // Show the modal
-            const modal = new bootstrap.Modal(document.getElementById('completeVisitModal'));
-            modal.show();
-        }
-        
-        // Complete visit with notes and follow-up status
-        async function completeVisit() {
-            const requestId = document.getElementById('completeRequestId').value;
-            const visitNotes = document.getElementById('visitNotes').value;
-            const followUpNeeded = document.getElementById('followUpNeeded').checked;
-            
+        // Load completed requests
+        async function loadCompletedRequests() {
             try {
-                // Get the current request to merge notes
-                const request = visitRequests.find(r => r.requestId === requestId);
-                if (!request) throw new Error('Visit request not found');
+                const requests = await visitRequestApi.getAll();
+                const completedRequests = requests.filter(r => !r.active);
+                const tableBody = document.getElementById('completedRequestsTable');
+                tableBody.innerHTML = '';
                 
-                // Merge existing notes with new visit notes
-                let updatedNotes = request.notes || '';
-                if (visitNotes) {
-                    if (updatedNotes) updatedNotes += '\n\n';
-                    updatedNotes += `Visit Notes (${new Date().toLocaleDateString()}): ${visitNotes}`;
+                if (completedRequests.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center">No completed requests found.</td>
+                        </tr>
+                    `;
+                } else {
+                    completedRequests.forEach(request => {
+                        tableBody.innerHTML += `
+                            <tr>
+                                <td>${request.patientFirstName} ${request.patientLastName}</td>
+                                <td>${request.roomNumber} ${request.floor ? `(Floor ${request.floor})` : ''}</td>
+                                <td>${getFacilityName(request.facilityId)}</td>
+                                <td>${request.visitedAt ? formatDate(request.visitedAt) : 'N/A'}</td>
+                                <td>${getUserName(request.visitedBy)}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequest('${request.requestId}')">View</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
                 }
                 
-                const response = await fetch(`${apiBaseUrl}/visit-request/${requestId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        active: false,
-                        visitedAt: new Date().toISOString(),
-                        visitedBy: username,
-                        notes: updatedNotes,
-                        followUpRequested: followUpNeeded
-                    })
-                });
-                
-                if (!response.ok) throw new Error('Failed to complete visit request');
-                
-                // Close modal and reload data
-                const modal = bootstrap.Modal.getInstance(document.getElementById('completeVisitModal'));
-                modal.hide();
-                loadReferenceData();
+                document.getElementById('completedLoadingMessage').classList.add('d-none');
                 
             } catch (error) {
-                console.error('Error completing visit request:', error);
-                document.getElementById('completeModalErrorAlert').textContent = 'Failed to complete visit request.';
-                document.getElementById('completeModalErrorAlert').classList.remove('d-none');
+                console.error('Error loading completed requests:', error);
+                document.getElementById('completedErrorAlert').textContent = 'Failed to load completed requests.';
+                document.getElementById('completedErrorAlert').classList.remove('d-none');
+                document.getElementById('completedLoadingMessage').classList.add('d-none');
             }
         }
         
-        // Assign user to visit
-        async function assignUser() {
-            const requestId = document.getElementById('assignRequestId').value;
-            const assignedUserId = document.getElementById('userSelect').value;
-            
-            if (!assignedUserId) {
-                document.getElementById('modalErrorAlert').textContent = 'Please select a user to assign.';
-                document.getElementById('modalErrorAlert').classList.remove('d-none');
+        // Load my requests
+        async function loadMyRequests() {
+            if (!currentUserId) {
+                document.getElementById('myErrorAlert').textContent = 'Could not determine current user.';
+                document.getElementById('myErrorAlert').classList.remove('d-none');
+                document.getElementById('myLoadingMessage').classList.add('d-none');
                 return;
             }
             
             try {
-                const response = await fetch(`${apiBaseUrl}/visit-request/${requestId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        assignedUserId
-                    })
-                });
+                const requests = await visitRequestApi.getByAssignedUser(currentUserId);
+                const tableBody = document.getElementById('myRequestsTable');
+                tableBody.innerHTML = '';
                 
-                if (!response.ok) throw new Error('Failed to assign user');
+                if (requests.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center">No requests assigned to you.</td>
+                        </tr>
+                    `;
+                } else {
+                    requests.forEach(request => {
+                        tableBody.innerHTML += `
+                            <tr>
+                                <td>${request.patientFirstName} ${request.patientLastName}</td>
+                                <td>${request.roomNumber} ${request.floor ? `(Floor ${request.floor})` : ''}</td>
+                                <td>${getFacilityName(request.facilityId)}</td>
+                                <td>${formatDate(request.requestedAt)}</td>
+                                <td>
+                                    <span class="badge ${request.active ? 'badge-active' : 'badge-inactive'}">
+                                        ${request.active ? 'Active' : 'Completed'}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequest('${request.requestId}')">View</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
                 
-                // Close modal and reload data
-                const modal = bootstrap.Modal.getInstance(document.getElementById('assignUserModal'));
-                modal.hide();
-                loadReferenceData();
+                document.getElementById('myLoadingMessage').classList.add('d-none');
                 
             } catch (error) {
-                console.error('Error assigning user:', error);
-                document.getElementById('modalErrorAlert').textContent = 'Error assigning user.';
-                document.getElementById('modalErrorAlert').classList.remove('d-none');
+                console.error('Error loading my requests:', error);
+                document.getElementById('myErrorAlert').textContent = 'Failed to load your assigned requests.';
+                document.getElementById('myErrorAlert').classList.remove('d-none');
+                document.getElementById('myLoadingMessage').classList.add('d-none');
             }
         }
         
-        // Reopen a completed visit
-        async function reopenVisit(requestId) {
+        // Load unassigned requests
+        async function loadUnassignedRequests() {
             try {
-                const response = await fetch(`${apiBaseUrl}/visit-request/${requestId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        active: true,
-                        visitedAt: null,
-                        visitedBy: null
-                    })
-                });
+                const requests = await visitRequestApi.getUnassigned();
+                const tableBody = document.getElementById('unassignedRequestsTable');
+                tableBody.innerHTML = '';
                 
-                if (!response.ok) throw new Error('Failed to reopen visit request');
+                if (requests.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center">No unassigned requests found.</td>
+                        </tr>
+                    `;
+                } else {
+                    requests.forEach(request => {
+                        tableBody.innerHTML += `
+                            <tr>
+                                <td>${request.patientFirstName} ${request.patientLastName}</td>
+                                <td>${request.roomNumber} ${request.floor ? `(Floor ${request.floor})` : ''}</td>
+                                <td>${getFacilityName(request.facilityId)}</td>
+                                <td>${formatDate(request.requestedAt)}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequest('${request.requestId}')">View</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
                 
-                // Reload the list
-                loadReferenceData();
+                document.getElementById('unassignedLoadingMessage').classList.add('d-none');
                 
             } catch (error) {
-                console.error('Error reopening visit request:', error);
-                document.getElementById('errorAlert').textContent = 'Failed to reopen visit request.';
-                document.getElementById('errorAlert').classList.remove('d-none');
+                console.error('Error loading unassigned requests:', error);
+                document.getElementById('unassignedErrorAlert').textContent = 'Failed to load unassigned requests.';
+                document.getElementById('unassignedErrorAlert').classList.remove('d-none');
+                document.getElementById('unassignedLoadingMessage').classList.add('d-none');
+            }
+        }
+        
+        // View request details
+        async function viewRequest(requestId) {
+            try {
+                const request = await visitRequestApi.getById(requestId);
+                currentRequest = request;
+                
+                document.getElementById('viewPatientName').textContent = `${request.patientFirstName} ${request.patientLastName}`;
+                document.getElementById('viewRoom').textContent = `${request.roomNumber} ${request.floor ? `(Floor ${request.floor})` : ''}`;
+                document.getElementById('viewFacility').textContent = getFacilityName(request.facilityId);
+                document.getElementById('viewRequestedAt').textContent = formatDate(request.requestedAt);
+                document.getElementById('viewStatus').textContent = request.active ? 'Active' : 'Completed';
+                document.getElementById('viewAssignedTo').textContent = getUserName(request.assignedUserId);
+                document.getElementById('viewNotes').textContent = request.notes || 'No notes';
+                
+                // Show/hide action buttons based on request status
+                document.getElementById('completeRequestBtn').style.display = request.active ? 'block' : 'none';
+                document.getElementById('assignToMeBtn').style.display = 
+                    (request.active && (!request.assignedUserId || request.assignedUserId !== currentUserId)) ? 'block' : 'none';
+                
+                const viewModal = new bootstrap.Modal(document.getElementById('viewRequestModal'));
+                viewModal.show();
+                
+            } catch (error) {
+                console.error('Error loading request details:', error);
+                alert('Failed to load request details.');
+            }
+        }
+        
+        // Complete request
+        async function completeRequest() {
+            if (!currentRequest) return;
+            
+            try {
+                await visitRequestApi.update(currentRequest.requestId, {
+                    active: false,
+                    visitedAt: new Date().toISOString(),
+                    visitedBy: currentUserId
+                });
+                
+                // Close modal and reload data
+                const modal = bootstrap.Modal.getInstance(document.getElementById('viewRequestModal'));
+                modal.hide();
+                
+                // Reload all tabs
+                loadActiveRequests();
+                loadCompletedRequests();
+                loadMyRequests();
+                loadUnassignedRequests();
+                
+            } catch (error) {
+                console.error('Error completing request:', error);
+                alert('Failed to complete request.');
+            }
+        }
+        
+        // Assign request to current user
+        async function assignToMe() {
+            if (!currentRequest || !currentUserId) return;
+            
+            try {
+                await visitRequestApi.update(currentRequest.requestId, {
+                    assignedUserId: currentUserId
+                });
+                
+                // Close modal and reload data
+                const modal = bootstrap.Modal.getInstance(document.getElementById('viewRequestModal'));
+                modal.hide();
+                
+                // Reload all tabs
+                loadActiveRequests();
+                loadMyRequests();
+                loadUnassignedRequests();
+                
+            } catch (error) {
+                console.error('Error assigning request:', error);
+                alert('Failed to assign request.');
             }
         }
         
         // Event listeners
-        window.addEventListener('DOMContentLoaded', () => {
-            loadReferenceData();
-            document.getElementById('assignUserBtn').addEventListener('click', assignUser);
-            document.getElementById('confirmCompleteBtn').addEventListener('click', completeVisit);
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Load reference data first
+            await loadFacilities();
+            await loadUsers();
+            
+            // Then load request data
+            loadActiveRequests();
+            
+            // Add tab change listeners
+            document.getElementById('completed-tab').addEventListener('click', loadCompletedRequests);
+            document.getElementById('my-tab').addEventListener('click', loadMyRequests);
+            document.getElementById('unassigned-tab').addEventListener('click', loadUnassignedRequests);
+            
+            // Add action button listeners
+            document.getElementById('completeRequestBtn').addEventListener('click', completeRequest);
+            document.getElementById('assignToMeBtn').addEventListener('click', assignToMe);
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
