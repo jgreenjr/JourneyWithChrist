@@ -41,51 +41,7 @@ export class CareFacilityApiStack extends cdk.Stack {
     // Grant permissions to the Care Facility Lambda
     careFacilityTable.grantReadWriteData(careFacilityLambda);
 
-    // API Gateway for Care Facility
-    const api = new apigateway.RestApi(this, 'CareFacilityApi', {
-      restApiName: 'Care Facility Service',
-      deployOptions: {
-        stageName: 'prod',
-      },
-      defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: apigateway.Cors.ALL_METHODS,
-        allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key', 'X-Amz-Security-Token', 'X-Custom-Header'],
-      },
-      endpointConfiguration: {
-        types: [apigateway.EndpointType.REGIONAL]
-      },
-    });
-    
-    // We'll use the main API for Visit Requests instead of a separate API
-
-    const careFacilityResource = api.root.addResource('care-facility');
-    careFacilityResource.addMethod('ANY', new apigateway.LambdaIntegration(careFacilityLambda));
-    
-    // Add resource for getting a single care facility by ID
-    const singleCareFacilityResource = careFacilityResource.addResource('{facilityId}');
-    singleCareFacilityResource.addMethod('GET', new apigateway.LambdaIntegration(careFacilityLambda), {
-      methodResponses: [{
-        statusCode: '200',
-        responseParameters: {
-          'method.response.header.Access-Control-Allow-Origin': true,
-        },
-      }],
-    });
-
-    // DynamoDB table for visit requests
-    const visitRequestTable = new dynamodb.Table(this, 'VisitRequestTable', {
-      partitionKey: { name: 'requestId', type: dynamodb.AttributeType.STRING },
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
-    });
-    
-    // DynamoDB table for users
-    const userTable = new dynamodb.Table(this, 'UserTable', {
-      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
-    });
-    
-    // Cognito User Pool
+     // Cognito User Pool
     const userPool = new cognito.UserPool(this, 'UserPool', {
       selfSignUpEnabled: false,
       autoVerify: { email: true },
@@ -112,7 +68,19 @@ export class CareFacilityApiStack extends cdk.Stack {
       authFlows: {
         userPassword: true,
         userSrp: true
-      }
+      },
+      oAuth: {
+        flows: {
+          implicitCodeGrant: true,
+          authorizationCodeGrant: true
+        },
+        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
+        callbackUrls: ['https://www.nwgreens.org/login-callback'],
+        logoutUrls: ['https://www.nwgreens.org/']
+      },
+      supportedIdentityProviders: [
+        cognito.UserPoolClientIdentityProvider.COGNITO
+      ]
     });
     
     // Cognito Domain
@@ -120,6 +88,61 @@ export class CareFacilityApiStack extends cdk.Stack {
       cognitoDomain: {
         domainPrefix: 'journey-with-christ'
       }
+    });
+
+    // Create Cognito authorizer for API Gateway
+    const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'CognitoAuthorizer', {
+      cognitoUserPools: [userPool],
+      identitySource: 'method.request.header.Authorization'
+    });
+    
+    // API Gateway for Care Facility
+    const api = new apigateway.RestApi(this, 'CareFacilityApi', {
+      restApiName: 'Care Facility Service',
+      deployOptions: {
+        stageName: 'prod',
+      },
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key', 'X-Amz-Security-Token', 'X-Custom-Header'],
+      },
+      endpointConfiguration: {
+        types: [apigateway.EndpointType.REGIONAL]
+      },
+    });
+    
+    // We'll use the main API for Visit Requests instead of a separate API
+
+    const careFacilityResource = api.root.addResource('care-facility');
+    careFacilityResource.addMethod('ANY', new apigateway.LambdaIntegration(careFacilityLambda), {
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO
+    });
+    
+    // Add resource for getting a single care facility by ID
+    const singleCareFacilityResource = careFacilityResource.addResource('{facilityId}');
+    singleCareFacilityResource.addMethod('GET', new apigateway.LambdaIntegration(careFacilityLambda), {
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }],
+    });
+
+    // DynamoDB table for visit requests
+    const visitRequestTable = new dynamodb.Table(this, 'VisitRequestTable', {
+      partitionKey: { name: 'requestId', type: dynamodb.AttributeType.STRING },
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
+    });
+    
+    // DynamoDB table for users
+    const userTable = new dynamodb.Table(this, 'UserTable', {
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // NOT recommended for production
     });
 
     // Visit Request Lambda function
@@ -165,6 +188,8 @@ export class CareFacilityApiStack extends cdk.Stack {
     
     // Add ANY method for visit request API calls
     visitRequestResource.addMethod('ANY', new apigateway.LambdaIntegration(visitRequestLambda), {
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
       methodResponses: [{
         statusCode: '200',
         responseParameters: {
@@ -176,6 +201,8 @@ export class CareFacilityApiStack extends cdk.Stack {
     // Add resource for getting a single visit request by ID
     const singleVisitRequestResource = visitRequestResource.addResource('{requestId}');
     singleVisitRequestResource.addMethod('GET', new apigateway.LambdaIntegration(visitRequestLambda), {
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
       methodResponses: [{
         statusCode: '200',
         responseParameters: {
@@ -186,6 +213,8 @@ export class CareFacilityApiStack extends cdk.Stack {
     
     // Add PUT method for updating a visit request
     singleVisitRequestResource.addMethod('PUT', new apigateway.LambdaIntegration(visitRequestLambda), {
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
       methodResponses: [{
         statusCode: '200',
         responseParameters: {
@@ -196,6 +225,8 @@ export class CareFacilityApiStack extends cdk.Stack {
     
     // Add ANY method for user API calls
     userResource.addMethod('ANY', new apigateway.LambdaIntegration(userLambda), {
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
       methodResponses: [{
         statusCode: '200',
         responseParameters: {
@@ -207,6 +238,8 @@ export class CareFacilityApiStack extends cdk.Stack {
     // Add resource for getting a single user by ID
     const singleUserResource = userResource.addResource('{userId}');
     singleUserResource.addMethod('GET', new apigateway.LambdaIntegration(userLambda), {
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
       methodResponses: [{
         statusCode: '200',
         responseParameters: {
@@ -217,6 +250,8 @@ export class CareFacilityApiStack extends cdk.Stack {
     
     // Add PUT method for updating a user
     singleUserResource.addMethod('PUT', new apigateway.LambdaIntegration(userLambda), {
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
       methodResponses: [{
         statusCode: '200',
         responseParameters: {
@@ -227,6 +262,8 @@ export class CareFacilityApiStack extends cdk.Stack {
     
     // Add DELETE method for deleting a user
     singleUserResource.addMethod('DELETE', new apigateway.LambdaIntegration(userLambda), {
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
       methodResponses: [{
         statusCode: '200',
         responseParameters: {
@@ -302,6 +339,16 @@ export class CareFacilityApiStack extends cdk.Stack {
     
     // We'll use a built-in policy instead of a custom one
     
+    // Create a custom origin request policy that forwards the Authorization header
+    const apiOriginRequestPolicy = new cloudfront.OriginRequestPolicy(this, 'ApiOriginRequestPolicy', {
+      originRequestPolicyName: 'ApiGatewayAuthPolicy',
+      headerBehavior: cloudfront.OriginRequestHeaderBehavior.allowList(
+        'Authorization'
+      ),
+      cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
+      queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.all()
+    });
+    
     // Add a behavior for the main API Gateway
     distribution.addBehavior('/api/*', new origins.HttpOrigin(`${api.restApiId}.execute-api.${this.region}.amazonaws.com`, {
       originPath: '/prod',
@@ -313,7 +360,7 @@ export class CareFacilityApiStack extends cdk.Stack {
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
       cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
-      originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+      originRequestPolicy: apiOriginRequestPolicy,
       functionAssociations: [{
         function: pathRewriteFunction,
         eventType: cloudfront.FunctionEventType.VIEWER_REQUEST
