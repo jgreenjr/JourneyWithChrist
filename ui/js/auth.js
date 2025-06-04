@@ -124,6 +124,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     } else {
         // If on login page and already authenticated, redirect to home
         const authenticated = await isAuthenticated();
+        console.log('Authenticated:', authenticated);
         if (authenticated) {
             const redirectUrl = localStorage.getItem('redirectUrl') || 'index.html';
             window.location.href = redirectUrl;
