@@ -155,17 +155,15 @@
         </div>
     </div>
 
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
     <script>
-        const apiBaseUrl = '/api';
         let users = [];
         
         // Load users
         async function loadUsers() {
             try {
-                const response = await fetch(`${apiBaseUrl}/user`);
-                if (!response.ok) throw new Error('Failed to fetch users');
-                
-                users = await response.json();
+                users = await userApi.getAll();
                 const tableBody = document.getElementById('usersTable');
                 tableBody.innerHTML = '';
                 
@@ -225,21 +223,13 @@
             }
             
             try {
-                const response = await fetch(`${apiBaseUrl}/user`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        name,
-                        email,
-                        phoneNumber,
-                        isAssignable,
-                        isAdmin
-                    })
+                await userApi.create({
+                    name,
+                    email,
+                    phoneNumber,
+                    isAssignable,
+                    isAdmin
                 });
-                
-                if (!response.ok) throw new Error('Failed to create user');
                 
                 // Close modal and reload users
                 const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
@@ -294,21 +284,13 @@
             }
             
             try {
-                const response = await fetch(`${apiBaseUrl}/user/${userId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        name,
-                        email,
-                        phoneNumber,
-                        isAssignable,
-                        isAdmin
-                    })
+                await userApi.update(userId, {
+                    name,
+                    email,
+                    phoneNumber,
+                    isAssignable,
+                    isAdmin
                 });
-                
-                if (!response.ok) throw new Error('Failed to update user');
                 
                 // Close modal and reload users
                 const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
@@ -328,14 +310,8 @@
             if (!confirm('Are you sure you want to delete this user?')) return;
             
             try {
-                const response = await fetch(`${apiBaseUrl}/user/${userId}`, {
-                    method: 'DELETE'
-                });
-                
-                if (!response.ok) throw new Error('Failed to delete user');
-                
+                await userApi.delete(userId);
                 loadUsers();
-                
             } catch (error) {
                 console.error('Error deleting user:', error);
                 document.getElementById('errorAlert').textContent = 'Failed to delete user.';

@@ -27,116 +27,164 @@
 <body>
     <div class="container">
         <h1>Create Visit Request</h1>
+        
         <form id="visitRequestForm">
             <div class="mb-3">
-                <label for="patientFirstName" class="form-label">Patient First Name</label>
-                <input type="text" class="form-control" id="patientFirstName" required>
-            </div>
-            <div class="mb-3">
-                <label for="patientLastName" class="form-label">Patient Last Name</label>
-                <input type="text" class="form-control" id="patientLastName" required>
-            </div>
-            <div class="mb-3">
-                <label for="patientPhoneNumber" class="form-label">Patient Phone Number</label>
-                <input type="tel" class="form-control" id="patientPhoneNumber">
-            </div>
-            <div class="mb-3">
-                <label for="facilitySelect" class="form-label">Care Facility</label>
-                <select class="form-select" id="facilitySelect" required>
-                    <option value="" selected disabled>Select a facility</option>
+                <label for="facilityId" class="form-label">Care Facility</label>
+                <select class="form-select" id="facilityId" required>
+                    <option value="">Select a facility</option>
+                    <!-- Facilities will be loaded here -->
                 </select>
             </div>
-            <div class="mb-3">
-                <label for="roomNumber" class="form-label">Room Number</label>
-                <input type="text" class="form-control" id="roomNumber" required>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="patientFirstName" class="form-label">Patient First Name</label>
+                    <input type="text" class="form-control" id="patientFirstName" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="patientLastName" class="form-label">Patient Last Name</label>
+                    <input type="text" class="form-control" id="patientLastName" required>
+                </div>
             </div>
+            
             <div class="mb-3">
-                <label for="floor" class="form-label">Floor</label>
-                <input type="text" class="form-control" id="floor">
+                <label for="patientPhoneNumber" class="form-label">Patient Phone Number (optional)</label>
+                <input type="tel" class="form-control" id="patientPhoneNumber" pattern="^\+[0-9]{11,15}$" title="Phone number format: +12345678901">
+                <div class="form-text">Format: +12345678901 (country code followed by number)</div>
             </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="roomNumber" class="form-label">Room Number</label>
+                    <input type="text" class="form-control" id="roomNumber" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="floor" class="form-label">Floor (optional)</label>
+                    <input type="text" class="form-control" id="floor">
+                </div>
+            </div>
+            
             <div class="mb-3">
-                <label for="notes" class="form-label">Notes</label>
+                <label for="notes" class="form-label">Notes (optional)</label>
                 <textarea class="form-control" id="notes" rows="3"></textarea>
             </div>
-            <button type="submit" class="btn btn-primary">Submit Request</button>
-            <a href="index.html" class="btn btn-secondary ms-2">Back to Home</a>
+            
+            <div class="mb-3">
+                <label for="assignedUserId" class="form-label">Assign To (optional)</label>
+                <select class="form-select" id="assignedUserId">
+                    <option value="">Unassigned</option>
+                    <!-- Users will be loaded here -->
+                </select>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="index.html" class="btn btn-secondary me-md-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">Create Request</button>
+            </div>
         </form>
-        <div class="mt-3">
-            <div id="successAlert" class="alert alert-success d-none" role="alert">
-                Visit request created successfully!
-            </div>
-            <div id="errorAlert" class="alert alert-danger d-none" role="alert">
-                Error creating visit request.
-            </div>
+        
+        <div id="errorAlert" class="alert alert-danger mt-3 d-none" role="alert">
+            Error creating visit request.
+        </div>
+        
+        <div id="successAlert" class="alert alert-success mt-3 d-none" role="alert">
+            Visit request created successfully!
         </div>
     </div>
 
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
     <script>
-        const apiBaseUrl = '/api';
-        
-        // Fetch care facilities for dropdown
-        async function loadCareFacilities() {
+        // Load facilities
+        async function loadFacilities() {
             try {
-                const response = await fetch(`${apiBaseUrl}/care-facility`);
-                if (!response.ok) throw new Error('Failed to fetch care facilities');
-                
-                const facilities = await response.json();
-                const facilitySelect = document.getElementById('facilitySelect');
+                const facilities = await facilityApi.getAll();
+                const facilitySelect = document.getElementById('facilityId');
                 
                 facilities.forEach(facility => {
                     const option = document.createElement('option');
                     option.value = facility.facilityId;
-                    option.textContent = facility.buildingName;
+                    option.textContent = facility.name;
                     facilitySelect.appendChild(option);
                 });
             } catch (error) {
-                console.error('Error loading care facilities:', error);
-                document.getElementById('errorAlert').textContent = 'Failed to load care facilities.';
+                console.error('Error loading facilities:', error);
+                document.getElementById('errorAlert').textContent = 'Failed to load facilities.';
                 document.getElementById('errorAlert').classList.remove('d-none');
             }
         }
         
-        // Handle form submission
-        document.getElementById('visitRequestForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // Load assignable users
+        async function loadUsers() {
+            try {
+                const users = await userApi.getAll();
+                const userSelect = document.getElementById('assignedUserId');
+                
+                const assignableUsers = users.filter(user => user.isAssignable);
+                assignableUsers.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.userId;
+                    option.textContent = user.name;
+                    userSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('errorAlert').textContent = 'Failed to load users.';
+                document.getElementById('errorAlert').classList.remove('d-none');
+            }
+        }
+        
+        // Create visit request
+        async function createVisitRequest(event) {
+            event.preventDefault();
             
+            const facilityId = document.getElementById('facilityId').value;
             const patientFirstName = document.getElementById('patientFirstName').value;
             const patientLastName = document.getElementById('patientLastName').value;
             const patientPhoneNumber = document.getElementById('patientPhoneNumber').value;
-            const facilityId = document.getElementById('facilitySelect').value;
             const roomNumber = document.getElementById('roomNumber').value;
             const floor = document.getElementById('floor').value;
             const notes = document.getElementById('notes').value;
+            const assignedUserId = document.getElementById('assignedUserId').value || null;
             
-            const visitRequest = {
-                patientFirstName,
-                patientLastName,
-                patientPhoneNumber,
-                facilityId,
-                roomNumber,
-                floor,
-                notes,
-                active: true
-            };
+            if (!facilityId || !patientFirstName || !patientLastName || !roomNumber) {
+                document.getElementById('errorAlert').textContent = 'Please fill in all required fields.';
+                document.getElementById('errorAlert').classList.remove('d-none');
+                document.getElementById('successAlert').classList.add('d-none');
+                return;
+            }
+            
+            // Validate phone number format if provided
+            if (patientPhoneNumber && !patientPhoneNumber.match(/^\+[0-9]{11,15}$/)) {
+                document.getElementById('errorAlert').textContent = 'Phone number must be in format: +12345678901';
+                document.getElementById('errorAlert').classList.remove('d-none');
+                document.getElementById('successAlert').classList.add('d-none');
+                return;
+            }
             
             try {
-                const response = await fetch(`${apiBaseUrl}/visit-request`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(visitRequest)
+                await visitRequestApi.create({
+                    facilityId,
+                    patientFirstName,
+                    patientLastName,
+                    patientPhoneNumber,
+                    roomNumber,
+                    floor,
+                    notes,
+                    assignedUserId,
+                    active: true,
+                    followUpRequested: false
                 });
                 
-                if (!response.ok) throw new Error('Failed to create visit request');
-                
-                document.getElementById('successAlert').classList.remove('d-none');
-                document.getElementById('errorAlert').classList.add('d-none');
+                // Show success message and reset form
                 document.getElementById('visitRequestForm').reset();
+                document.getElementById('errorAlert').classList.add('d-none');
+                document.getElementById('successAlert').classList.remove('d-none');
                 
-                // Redirect after 2 seconds
+                // Redirect to visit list after 2 seconds
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    window.location.href = 'visit-list.html';
                 }, 2000);
                 
             } catch (error) {
@@ -145,11 +193,13 @@
                 document.getElementById('errorAlert').classList.remove('d-none');
                 document.getElementById('successAlert').classList.add('d-none');
             }
-        });
+        }
         
-        // Load data when page loads
+        // Event listeners
         window.addEventListener('DOMContentLoaded', () => {
-            loadCareFacilities();
+            loadFacilities();
+            loadUsers();
+            document.getElementById('visitRequestForm').addEventListener('submit', createVisitRequest);
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
